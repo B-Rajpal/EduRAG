@@ -3,7 +3,9 @@ import "../styles/materialbox.css"
 
 function Materialbox() {
   return (
+    <>
     <div className='materailbox'>Materialbox</div>
+    </>
   )
 }
 
