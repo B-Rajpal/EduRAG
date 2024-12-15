@@ -1,0 +1,82 @@
+/* chatbox.css */
+
+/* Main container for the chatbox */
+.chatbox {
+    position: fixed;
+    margin : 0 0 0 73%;
+    width: 25%;
+    height : 95%;
+    background-color: #f9f9f9;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  
+  /* Chat history container */
+  .chathistory {
+    flex: 1;
+    padding: 10px;
+    overflow-y: auto;
+    background-color: #fff;
+    border-bottom: 1px solid #ccc;
+  }
+  
+  /* Message styling */
+  .chathistory div {
+    padding: 8px;
+    border-radius: 5px;
+    max-width: 100%;
+    word-wrap: break-word;
+  }
+  
+  /* Input box container */
+  .inputbox {
+    display: flex;
+    padding: 10px;
+    background-color: #f9f9f9;
+  }
+  
+  /* Input field */
+  .inputbox input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    outline: none;
+    font-size: 14px;
+  }
+  
+  /* Send button */
+  .inputbox button {
+    margin-left: 10px;
+    padding: 10px;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  
+  .inputbox button:hover {
+    background-color: #0056b3;
+  }
+  
+  .chathistory::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .chathistory::-webkit-scrollbar-thumb {
+    background-color: #ccc;
+    border-radius: 10px;
+  }
+  
+  .chathistory::-webkit-scrollbar-thumb:hover {
+    background-color: #aaa;
+  }
+  .sendbutton{
+    padding: 100px;
+  }
+  
