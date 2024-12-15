@@ -2,6 +2,7 @@ import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import "../styles/classdetails.css";
 import Chatbot from "../components/Chatbot";
+import FileUpload from "../components/Fileupload";
 
 // import AnimatedCursor from "react-animated-cursor"
 import { GoArrowLeft } from "react-icons/go";;
@@ -39,6 +40,7 @@ const ClassDetails = () => {
     <h1 className="class-title">{selectedClass.title}</h1>
     <p className="class-teacher">Taught by: {selectedClass.teacher}</p>
     <p className="class-description">{selectedClass.description}</p>
+    <FileUpload/>
     </div>
     <Chatbot/>
     </div>

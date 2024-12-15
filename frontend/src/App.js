@@ -4,7 +4,6 @@ import Home from './pages/Home';
 import "./App.css"
 
 import ClassDetails from "./pages/ClassDetails";
-import Display from './pages/Display';
 
 
 function App() {
@@ -12,7 +11,7 @@ function App() {
     <Router>
       <div className="App">
         <Routes>
-        <Route path="/" element={<Display />} />
+        <Route path="/" element={<Home />} />
         <Route path="/class/:id" element={<ClassDetails />} />
        
         </Routes>

@@ -1,7 +1,7 @@
 import React from 'react';
 import Chatbot from '../components/Chatbot';
 import Dashboard from '../components/dashboard';
-import Materialbox from '../components/Materialbox';
+import FileUpload from '../components/Fileupload';
 import Display from './Display';
 const Home = () => {
   return (

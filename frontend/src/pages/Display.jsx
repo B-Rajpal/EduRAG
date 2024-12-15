@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUser } from '@fortawesome/free-solid-svg-icons';
 
-const Display = () => {
+const Home = () => {
   const navigate = useNavigate();
 
   const classes = [
@@ -48,4 +48,4 @@ const Display = () => {
   );
 };
 
-export default Display;
+export default Home;
