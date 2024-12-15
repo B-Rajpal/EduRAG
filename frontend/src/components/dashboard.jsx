@@ -19,7 +19,7 @@ const Dashboard = () => {
             <li>Science</li>
             <li>History</li>
             <li>Language Arts</li>
-            <li>Computer Science</li>
+            <li>Compu</li>
           </ul>
         </nav>
       </div>
