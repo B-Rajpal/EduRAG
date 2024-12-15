@@ -3,6 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import "../styles/classdetails.css";
 import Chatbot from "../components/Chatbot";
 
+// import AnimatedCursor from "react-animated-cursor"
+import { GoArrowLeft } from "react-icons/go";;
 const ClassDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -28,10 +30,11 @@ const ClassDetails = () => {
   }
 
   return (
+    //   <AnimatedCursor />
     <div>
     <div className="class-details-container">
     <button className="back-button" onClick={() => navigate(-1)}>
-    Back
+    <GoArrowLeft />
     </button>
     <h1 className="class-title">{selectedClass.title}</h1>
     <p className="class-teacher">Taught by: {selectedClass.teacher}</p>

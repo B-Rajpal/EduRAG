@@ -30,6 +30,7 @@
 /* Button styling */
 .back-button {
     background-color: #1a73e8;
+    margin : 2% 2% 0 2%;
     color: white;
     border: none;
     padding: 10px 20px;
