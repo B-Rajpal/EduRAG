@@ -1,0 +1,10 @@
+pydantic 
+langchain 
+langchain-community 
+faiss-cpu 
+sentence-transformers 
+ollama
+flask
+flask-cors
+pypdf
+tiktoken

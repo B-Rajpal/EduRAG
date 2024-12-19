@@ -1,0 +1,63 @@
+.class-details-container {
+    /* font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    padding: 40px;
+    background-color: #f9f9f9;
+    border-radius: 10px;
+    width: 40%; 
+   
+    position: absolute;
+    top: 20%; 
+    left: 20%; 
+    transform: translate(-50%, -50%); 
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); */
+    position: fixed;
+  margin : 73 0 0 0%;
+  width: 72%;
+  height : 95%;
+  background-color: #f9f9f9;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  font-family: Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+    
+}
+
+/* Button styling */
+.back-button {
+    background-color: #1a73e8;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    margin-bottom: 20px;
+    align-self: flex-start; 
+    /* Align button to the left */
+}
+
+.back-button:hover {
+    background-color: #1558c0;
+}
+
+/* Title styling */
+.class-title {
+    font-size: 28px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+/* Text styling */
+.class-teacher,
+.class-description {
+    font-size: 18px;
+    color: #555;
+    margin-bottom: 15px;
+    line-height: 1.6; /* Improve readability */
+}

@@ -1,0 +1,14 @@
+.materailbox{
+    position: fixed;
+    margin-left: 23%;
+    width: 48%;
+    height : 95%;
+    background-color: #f9f9f9;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
