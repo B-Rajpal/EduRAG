@@ -11,6 +11,7 @@ from sentence_transformers import SentenceTransformer
 from langchain.embeddings import HuggingFaceEmbeddings
 import ollama
 from langchain.llms.base import LLM
+import markdown
 
 # Flask app setup
 app = Flask(__name__)
@@ -22,6 +23,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # Global variables to hold processed data
 vector_store = None
+ollama_llm = None
 
 def process_pdf(file_path):
     """Process the PDF and update the global vector store."""
@@ -60,6 +62,18 @@ PROMPT = PromptTemplate(
     template=prompt_template, input_variables=["context", "question"]
 )
 
+@app.route('/initialize', methods=['POST'])
+def initialize_model():
+    """Endpoint to initialize the Ollama model."""
+    global ollama_llm
+
+    # Initialize the Ollama model if not already initialized
+    if ollama_llm is None:
+        ollama_llm = OllamaLLM(model_name="llama3.2")
+        return jsonify({"message": "Model initialized successfully"}), 200
+    else:
+        return jsonify({"message": "Model already initialized"}), 200
+
 @app.route('/upload', methods=['POST'])
 def upload_file():
     """Endpoint to upload and save the file."""
@@ -94,10 +108,12 @@ def chunk_file():
 @app.route('/rag', methods=['POST'])
 def rag_pipeline():
     """Endpoint to handle the RAG pipeline for queries."""
-    global vector_store
+    global vector_store, ollama_llm
 
     if vector_store is None:
         return jsonify({"error": "Vector store is not initialized. Please process a file first."}), 400
+    if ollama_llm is None:
+        return jsonify({"error": "Model is not initialized. Please initialize the model first."}), 400
 
     data = request.get_json()
     query = data.get("query")
@@ -106,24 +122,19 @@ def rag_pipeline():
         return jsonify({"error": "Query is required"}), 400
 
     try:
-        # Initialize the Ollama model using the custom LLM wrapper
-        ollama_llm = OllamaLLM(model_name="llama3.2")
-
         # Define the RetrievalQA chain
         qa = RetrievalQA.from_chain_type(
             llm=ollama_llm,
             chain_type="stuff",
-            retriever=vector_store.as_retriever(),
+            retriever=vector_store.as_retriever(search_kwargs={"k": 5}),
             chain_type_kwargs={"prompt": PROMPT},
-            return_source_documents=True
+            return_source_documents=False  # Ensure source documents are not returned
         )
 
         result = qa({"query": query})
         answer = result['result']
-        source_documents = result['source_documents']
-        context = [doc.page_content for doc in source_documents]
 
-        return jsonify({"answer": answer, "context": context}), 200
+        return jsonify({"answer": markdown.markdown(answer)}), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
