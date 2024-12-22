@@ -10,46 +10,73 @@ const Chatbot = () => {
   const inputRef = useRef(null); // Reference for the input textarea
   const [loading, setLoading] = useState(false);
   const [heightAdjusted, setHeightAdjusted] = useState(false); // State to track if the height adjustment should occur
+  const [start, setStart] = useState(true);
 
   const handleStart = async () => {
-    if (!input.trim()) return; // Prevent sending empty messages
     setLoading(true);
+    const filePath = "E:\\Finalyear_project\\EduRAG\\backend\\example1.pdf"; // File path for testing
+    setStart(false);
+    try {
+      // Step 1: Chunk the file
+      const chunkResponse = await axios.post(
+        'http://localhost:5000/chunk',
+        { filePath }, // Pass filePath as JSON
+        {
+          headers: {
+            'Content-Type': 'application/json', // Explicitly set content type
+          },
+        }
+      )
+        .finally(() => {
+          setLoading(false);
+        });
 
-    const filePath = "H:/frontend/EduRAG/backend/example1.pdf"; // Make sure this is correct
+      console.log("Chunk response:", chunkResponse.data);
+      const modelstart = await axios.post('http://localhost:5000/initialize', {
+        headers: {
+          'Content-Type': 'application/json', // Explicitly set content type
+        },
+      });
+      console.log("model initialization response:", modelstart.data);
+    }
+    catch (error) {
+      console.error("Error:", error.response?.data || error.message);
 
+      const botErrorResponse = {
+        role: "Bot",
+        message: "There was an error processing your request. Please try again.",
+      };
+      setChatHistory((prev) => [...prev, botErrorResponse]);
+    }
+  }
+
+  const handleSend = async () => {
+    setLoading(true);
+    if (!input.trim()) return;
     const userMessage = { role: "User", message: input };
     setChatHistory((prev) => [...prev, userMessage]); // Add user message immediately
 
     try {
-      // Step 1: Chunk the file
-      const chunkResponse = await axios.post(
-        "http://localhost:5000/chunk",
-        { filePath }, // Pass filePath as JSON
-        {
-          headers: {
-            "Content-Type": "application/json", // Explicitly set content type
-          },
-        }
-      );
-
-      console.log("Chunk response:", chunkResponse.data);
-
       // Step 2: Call RAG pipeline
       const ragResponse = await axios.post(
-        "http://localhost:5000/rag",
+        'http://localhost:5000/rag',
         { query: input }, // Pass user input as query
         {
           headers: {
-            "Content-Type": "application/json", // Explicitly set content type
+            'Content-Type': 'application/json', // Explicitly set content type
           },
         }
-      );
+      )
+        .finally(() => {
+          setLoading(false);
+        });
 
       console.log("RAG response:", ragResponse.data);
 
       const botResponse = {
         role: "Bot",
         message: ragResponse.data.answer || "No response received.",
+        isHtml: true, // Mark this response as HTML content
       };
 
       setChatHistory((prev) => [...prev, botResponse]);
@@ -62,12 +89,16 @@ const Chatbot = () => {
       };
 
       setChatHistory((prev) => [...prev, botErrorResponse]);
-    } finally {
-      setLoading(false);
-      setInput(""); // Clear input after sending
-      resetInputSize(); // Reset input size after sending
     }
+
+    setInput(""); // Clear input after sending
   };
+
+  // Scroll to the bottom whenever the chatHistory changes
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatHistory]);
+
 
   // Handle the "Enter" key for sending messages and "Shift + Enter" for new lines
   const handleKeyPress = (event) => {
@@ -128,29 +159,36 @@ const Chatbot = () => {
             <strong>{chat.role}:</strong> {chat.message}
           </div>
         ))}
-        {loading && <div><Loader/></div>}
+        {loading && <div><Loader /></div>}
         <div ref={chatEndRef}></div>
       </div>
-      <div className="inputbox">
-        <textarea
-          ref={inputRef}
-          value={input} // Controlled input (value tied to state)
-          onChange={handleInputChange} // Update input value as the user types
-          onKeyDown={handleKeyPress} // Handle key events (e.g., Enter)
-          placeholder="Type your question..."
-          rows="1"
-          style={{
-            resize: "none", // Disabling manual resize to control the height via JS
-            minHeight: "40px", // Minimum height for the input (change this as needed)
-            width: "100%", // Ensure it takes full width
-            padding: "10px",
-            fontSize: "16px",
-            borderRadius: "5px",
-            border: "1px solid #ccc",
-          }}
-        ></textarea>
-        <FaPaperPlane className="send-icon" onClick={handleSend} />
+      {start ? (
+        <div>
+          <button onClick={handleStart} className="startchat">Start</button>
         </div>
+      ) : (
+        <div className="inputbox">
+          <textarea
+            ref={inputRef}
+            value={input} // Controlled input (value tied to state)
+            onChange={handleInputChange} // Update input value as the user types
+            onKeyDown={handleKeyPress} // Handle key events (e.g., Enter)
+            placeholder="Type your question..."
+            rows="1"
+            style={{
+              resize: "none", // Disabling manual resize to control the height via JS
+              minHeight: "40px", // Minimum height for the input (change this as needed)
+              width: "100%", // Ensure it takes full width
+              padding: "10px",
+              fontSize: "16px",
+              borderRadius: "5px",
+              border: "1px solid #ccc",
+            }}
+          ></textarea>
+          <FaPaperPlane className="send-icon" onClick={handleSend} />
+        </div>
+      )
+      }
     </div>
   );
 };
