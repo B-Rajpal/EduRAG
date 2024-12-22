@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
 import "../styles/chatbox.css";
 import axios from "axios";
-import { FaPaperPlane } from "react-icons/fa"; // Import the FaPaperPlane icon
+import { FaPaperPlane } from "react-icons/fa";
 import Loader from "./Loader";
+
 const Chatbot = () => {
   const [input, setInput] = useState(""); // For user input
   const [chatHistory, setChatHistory] = useState([]); // To store chat history
@@ -38,8 +39,7 @@ const Chatbot = () => {
         },
       });
       console.log("model initialization response:", modelstart.data);
-    }
-    catch (error) {
+    } catch (error) {
       console.error("Error:", error.response?.data || error.message);
 
       const botErrorResponse = {
@@ -48,7 +48,7 @@ const Chatbot = () => {
       };
       setChatHistory((prev) => [...prev, botErrorResponse]);
     }
-  }
+  };
 
   const handleSend = async () => {
     setLoading(true);
@@ -99,7 +99,6 @@ const Chatbot = () => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatHistory]);
 
-
   // Handle the "Enter" key for sending messages and "Shift + Enter" for new lines
   const handleKeyPress = (event) => {
     if (event.key === "Enter" && !event.shiftKey && input.trim()) {
@@ -134,11 +133,6 @@ const Chatbot = () => {
     }
   };
 
-  // Scroll to the bottom whenever the chatHistory changes
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chatHistory]);
-
   return (
     <div className="chatbox">
       <div className="chathistory">
@@ -156,7 +150,12 @@ const Chatbot = () => {
               wordWrap: "break-word",
             }}
           >
-            <strong>{chat.role}:</strong> {chat.message}
+            <strong>{chat.role}:</strong>
+            {chat.isHtml ? (
+              <div dangerouslySetInnerHTML={{ __html: chat.message }}></div>
+            ) : (
+              chat.message
+            )}
           </div>
         ))}
         {loading && <div><Loader /></div>}
@@ -187,8 +186,7 @@ const Chatbot = () => {
           ></textarea>
           <FaPaperPlane className="send-icon" onClick={handleSend} />
         </div>
-      )
-      }
+      )}
     </div>
   );
 };
