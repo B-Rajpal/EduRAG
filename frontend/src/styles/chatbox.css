@@ -1,11 +1,9 @@
-/* chatbox.css */
-
 /* Main container for the chatbox */
 .chatbox {
   position: fixed;
-  margin : 0 0 0 73%;
+  margin: 0 0 0 73%;
   width: 25%;
-  height : 95%;
+  height: 95%;
   background-color: #f9f9f9;
   border: 1px solid #ccc;
   border-radius: 10px;
@@ -25,59 +23,48 @@
   border-bottom: 1px solid #ccc;
 }
 
-/* Message styling */
-.chathistory div {
-  padding: 8px;
-  border-radius: 5px;
-  max-width: 100%;
-  word-wrap: break-word;
-}
-
 /* Input box container */
 .inputbox {
   display: flex;
   padding: 10px;
   background-color: #f9f9f9;
+  border-top: 1px solid #ccc;
+  align-items: center;
+  justify-content: space-between; /* Align items with space between */
 }
 
-/* Input field */
-.inputbox input {
+/* Dynamic Input field */
+.inputbox textarea {
   flex: 1;
-  padding: 10px;
+  min-height: 40px;
+  max-height: 150px;
+  padding: 10px 50px 10px 10px; /* Add more space on the right for the send icon */
   border: 1px solid #ccc;
   border-radius: 5px;
   outline: none;
   font-size: 14px;
+  font-family: Arial, sans-serif;
+  line-height: 1.4;
+  resize: none; /* Prevent manual resizing */
+  overflow: hidden; /* Hide the scrollbar but still allow scroll */
+  box-sizing: border-box; /* Include padding in width/height calculations */
 }
 
-/* Send button */
-.inputbox button {
-  margin-left: 10px;
-  padding: 10px;
-  color: white;
-  border: none;
+/* Hide the scrollbar (Webkit browsers) */
+.inputbox textarea::-webkit-scrollbar {
+  display: none; /* Hide the scrollbar */
+}
+
+/* Send icon (button inside the input box) */
+.send-icon {
+  font-size: 20px;
+  color: #007bff;
   cursor: pointer;
-  font-size: 14px;
+  padding: 0 10px; /* Space between icon and text field */
 }
 
-.inputbox button:hover {
-  background-color: #0056b3;
-}
-
-.chathistory::-webkit-scrollbar {
-  width: 6px;
-}
-
-.chathistory::-webkit-scrollbar-thumb {
-  background-color: #ccc;
-  border-radius: 10px;
-}
-
-.chathistory::-webkit-scrollbar-thumb:hover {
-  background-color: #aaa;
-}
-.sendbutton{
-  padding: 100px;
+.send-icon:hover {
+  color: #0056b3;
 }
 .startchat{
   width:80%;
