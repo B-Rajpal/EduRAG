@@ -1,13 +1,17 @@
 import React, { useState, useRef, useEffect } from "react";
 import "../styles/chatbox.css";
 import axios from 'axios';
+import Loader from "./Loader";
+
 
 const Chatbot = () => {
   const [input, setInput] = useState(""); // For user input
   const [chatHistory, setChatHistory] = useState([]); // To store chat history
   const chatEndRef = useRef(null);
+  const [loading, setLoading] = useState(false);
 
   const handleSend = async () => {
+    setLoading(true);
     if (!input.trim()) return;
 
     const filePath = "H:/frontend/EduRAG/backend/example1.pdf";
@@ -38,7 +42,10 @@ const Chatbot = () => {
             'Content-Type': 'application/json', // Explicitly set content type
           },
         }
-      );
+      )
+        .finally(() => {
+          setLoading(false);
+        });
 
       console.log("RAG response:", ragResponse.data);
 
@@ -87,6 +94,7 @@ const Chatbot = () => {
             <strong>{chat.role}:</strong> {chat.message}
           </div>
         ))}
+        <div>{loading? <Loader/> : ""}</div>
         <div ref={chatEndRef}></div>
       </div>
       <div className="inputbox">
