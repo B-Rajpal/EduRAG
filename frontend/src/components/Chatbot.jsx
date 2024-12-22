@@ -14,7 +14,6 @@ const Chatbot = () => {
   const [start, setStart] = useState(true);
 
   const handleStart = async () => {
-    if (!input.trim()) return; // Prevent sending empty messages
     setLoading(true);
     const filePath = "E:\\Finalyear_project\\EduRAG\\backend\\example1.pdf"; // File path for testing
     setStart(false);
