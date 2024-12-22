@@ -10,7 +10,7 @@ const Chatbot = () => {
   const handleSend = async () => {
     if (!input.trim()) return;
 
-    const filePath = "E:\\Finalyear_project\\EduRAG\\backend\\example1.pdf"; // File path for testing
+    const filePath = "H:/frontend/EduRAG/backend/example1.pdf";
 
     const userMessage = { role: "User", message: input };
     setChatHistory((prev) => [...prev, userMessage]); // Add user message immediately
