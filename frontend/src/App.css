@@ -1,4 +1,4 @@
-/* App.css */
+
 body {
   font-family: 'Arial', sans-serif;
   background-color: #f4f4f4;
@@ -15,7 +15,7 @@ h1, h2, h3 {
   color: #333;
 }
 
-input[type="text"] {
+/* input[type="text"] {
   width: 300px;
   padding: 10px;
   margin: 20px 0;
@@ -23,6 +23,14 @@ input[type="text"] {
   border-radius: 5px;
   font-size: 16px;
 }
+input[type="password"] {
+  width: 300px;
+  padding: 10px;
+  margin: 20px 0;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 16px;
+} */
 
 button {
   padding: 10px 20px;

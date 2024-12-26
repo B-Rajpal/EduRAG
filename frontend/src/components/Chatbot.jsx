@@ -51,6 +51,10 @@ const Chatbot = () => {
     const userMessage = { role: "User", message: input };
     setChatHistory((prev) => [...prev, userMessage]); // Add user message
     setInput(""); // Clear input
+    const textarea = inputRef.current;
+    if (textarea) {
+      textarea.style.height = "auto"; // Reset to original size
+    }
     setLoadingScreen(true); // Show loading screen
 
     try {
@@ -102,10 +106,21 @@ const Chatbot = () => {
   const adjustTextareaHeight = () => {
     const textarea = inputRef.current;
     if (textarea) {
+      const lineHeight = parseInt(getComputedStyle(textarea).lineHeight, 10); // Get line-height in pixels
+      const maxLines = 5; // Maximum number of lines before enabling scroll
+      const maxHeight = lineHeight * maxLines;
+
       // Reset height to auto to shrink the height on delete
       textarea.style.height = "auto";
-      // Adjust height to match the scrollHeight
-      textarea.style.height = `${textarea.scrollHeight}px`;
+
+      // Adjust height based on scrollHeight
+      if (textarea.scrollHeight > maxHeight) {
+        textarea.style.height = `${maxHeight}px`;
+        textarea.style.overflowY = "scroll"; // Enable scroll when exceeding 3 lines
+      } else {
+        textarea.style.height = `${textarea.scrollHeight}px`;
+        textarea.style.overflowY = "hidden"; // Hide scroll otherwise
+      }
     }
   };
 
@@ -118,17 +133,17 @@ const Chatbot = () => {
         {/* Chat messages */}
         {chatHistory.map((chat, index) => (
           <div
-          key={index}
-          style={{
-            textAlign: chat.role === "User" ? "right" : "left", // Align based on role
-            backgroundColor: chat.role === "User" ? "orange" : "yellow",
-            margin: "5px 0",
-            padding: "5px 10px",
-            borderRadius: "10px",
-            display: "inline-block",
-            maxWidth: "70%", // Adjust max width for chat bubbles
-            wordWrap: "break-word",
-          }}
+            key={index}
+            style={{
+              textAlign: chat.role === "User" ? "right" : "left", // Align based on role
+              backgroundColor: chat.role === "User" ? "orange" : "yellow",
+              margin: "5px 0",
+              padding: "5px 10px",
+              borderRadius: "10px",
+              display: "inline-block",
+              maxWidth: "70%", // Adjust max width for chat bubbles
+              wordWrap: "break-word",
+            }}
           >
             <strong>{chat.role}:</strong>
             {chat.isHtml ? (
@@ -157,12 +172,12 @@ const Chatbot = () => {
             rows="1"
             style={{
               resize: "none",
-              minHeight: "20px",
               width: "100%",
               padding: "10px",
               fontSize: "16px",
               borderRadius: "5px",
               border: "1px solid #ccc",
+              lineHeight: "24px", // Set a fixed line height (e.g., 24px)
             }}
             disabled={loadingScreen} // Disable the textarea when loading
           ></textarea>

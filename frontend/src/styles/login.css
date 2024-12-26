@@ -1,0 +1,98 @@
+/* Login Container */
+.login-container {
+    text-align: center;
+    padding: 30px;
+    max-width: 420px;
+    margin: 50px auto;
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Header styles */
+  .login-container h1 {
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 20px;
+  }
+  
+  /* Form styles */
+  .login-form {
+    width: 100ew;
+  }
+  
+  .form-group {
+    margin-bottom: 20px;
+  }
+  
+  /* Label styling */
+  .form-group label {
+    font-size: 16px;
+    font-weight: 500;
+    color: #333;
+    display: block;
+    margin-bottom: 5px;
+  }
+  
+  /* Input fields styling */
+  .input-field {
+    width: 70%;
+    padding: 12px;
+    margin: 8px 0;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    background-color: #f9f9f9;
+    font-size: 14px;
+    box-sizing: border-box;
+    transition: border-color 0.3s ease;
+  }
+  
+  /* Focus effect on inputs */
+  .input-field:focus {
+    border-color: #007bff;
+    outline: none;
+    background-color: #ffffff;
+  }
+  
+  /* Submit button */
+  .submit-button {
+    width: 30%;
+    padding: 12px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    transition: background-color 0.3s ease;
+  }
+  
+  .submit-button:hover {
+    background-color: #0056b3;
+  }
+  
+  /* Error message */
+  .error-message {
+    color: #e74c3c;
+    font-size: 14px;
+    margin-top: 10px;
+  }
+  
+  /* Responsive design: Adjust layout on smaller screens */
+  @media (max-width: 500px) {
+    .login-container {
+      padding: 20px;
+      width: 90%;
+    }
+  
+    .input-field {
+      padding: 10px;
+    }
+  
+    .submit-button {
+      padding: 10px;
+    }
+  }
+  
