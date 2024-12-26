@@ -2,27 +2,30 @@ import React from "react";
 import "../styles/dashboard.css"; // Make sure to create and link this CSS file
 
 const Dashboard = () => {
-  return (
+
+  const subjects = ["Mathematics", "Science", "History", "Language Arts", "Computer Science"];
+ return (
     <div className="dashboard-container">
       <div className="sidebar">
         <div className="account-section">
           <img
-            src="https://via.placeholder.com/50" // Replace with a real profile image
-            alt="Account Icon"
+            src="https://via.placeholder.com/50"
+            alt="Profile Icon"
+            title="Account Icon"
             className="account-icon"
           />
-          <h3>John Doe</h3>
+          <h3 className="account-name">John Doe</h3>
         </div>
         <nav className="nav-menu">
           <ul>
-            <li>Mathematics</li>
-            <li>Science</li>
-            <li>History</li>
-            <li>Language Arts</li>
-            <li>Computer science</li>
+            {subjects.map((subject, index) => (
+              <li key={index} className="nav-item">
+                {subject}
+              </li>
+            ))}
           </ul>
         </nav>
-      </div>
+      </aside>
     </div>
   );
 };
