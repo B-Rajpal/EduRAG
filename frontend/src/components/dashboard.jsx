@@ -25,7 +25,7 @@ const Dashboard = () => {
             ))}
           </ul>
         </nav>
-      </aside>
+      </div>
     </div>
   );
 };
