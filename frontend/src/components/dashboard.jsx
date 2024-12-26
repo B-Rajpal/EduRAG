@@ -2,6 +2,8 @@ import React from "react";
 import "../styles/dashboard.css"; // Make sure to create and link this CSS file
 
 const Dashboard = () => {
+    const subjects = ["Mathematics", "Science", "History", "Language Arts", "Computer Science"];
+
   return (
     <div className="dashboard-container">
       <div className="sidebar">
@@ -15,12 +17,12 @@ const Dashboard = () => {
         </div>
         <nav className="nav-menu">
           <ul>
-            <li>Mathematics</li>
-            <li>Science</li>
-            <li>History</li>
-            <li>Language Arts</li>
-            <li>Computer science</li>
-          </ul>
+          {subjects.map((subject, index) => (
+              <li key={index} className="nav-item">
+                {subject}
+              </li>
+          ))}  
+         </ul>
         </nav>
       </div>
     </div>
