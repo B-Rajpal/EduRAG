@@ -76,3 +76,16 @@ form {
 h2 {
   margin-bottom: 20px;
 }
+.flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.height-10vh {
+  height: 10vh;
+}
+
+.z-index-1 {
+  z-index: 1;
+}
