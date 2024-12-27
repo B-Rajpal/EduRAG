@@ -1,37 +1,44 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
-const FileUpload = () => {
-  const [file, setFile] = useState(null);
+const FileUpload = ({ subject }) => {
+  const [files, setFiles] = useState([]);
 
   // Handle file selection
   const handleFileChange = (event) => {
-    setFile(event.target.files[0]);
+    setFiles(event.target.files);
   };
 
   // Handle file upload
   const handleFileUpload = async () => {
-    if (!file) {
-      alert('Please select a file to upload.');
+    if (!files.length) {
+      alert('Please select at least one file to upload.');
       return;
     }
 
     const formData = new FormData();
-    formData.append('file', file);
+    Array.from(files).forEach((file) => {
+      formData.append('files', file);
+    });
+    formData.append('subject', subject); // Include subject in the request
 
     try {
-      const response = await axios.post('http://localhost:5000/upload', formData);
-      alert(`File uploaded successfully: ${response.data.filePath}`);
+      const response = await axios.post('http://localhost:5000/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      alert(`Files uploaded successfully for ${subject}: ${response.data.message}`);
     } catch (error) {
       console.error('Upload failed:', error);
-      alert('Error uploading file.');
+      alert('Error uploading files.');
     }
   };
 
   return (
     <div>
-      <h3>Upload a File</h3>
-      <input type="file" onChange={handleFileChange} />
+      <h3>Upload Files for {subject}</h3>
+      <input type="file" multiple onChange={handleFileChange} />
       <button onClick={handleFileUpload}>Upload</button>
     </div>
   );

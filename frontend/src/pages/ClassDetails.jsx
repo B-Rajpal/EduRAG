@@ -2,10 +2,9 @@ import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import "../styles/classdetails.css";
 import Chatbot from "../components/Chatbot";
+import { GoArrowLeft } from "react-icons/go";
 import FileUpload from "../components/Fileupload";
 
-// import AnimatedCursor from "react-animated-cursor"
-import { GoArrowLeft } from "react-icons/go";
 const ClassDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -31,18 +30,18 @@ const ClassDetails = () => {
   }
 
   return (
-    //   <AnimatedCursor />
     <div>
-    <div className="class-details-container">
-    <button className="back-button" onClick={() => navigate(-1)}>
-    <GoArrowLeft />
-    </button>
-    <h1 className="class-title">{selectedClass.title}</h1>
-    <p className="class-teacher">Taught by: {selectedClass.teacher}</p>
-    <p className="class-description">{selectedClass.description}</p>
-    <FileUpload/>
-    </div>
-    <Chatbot/>
+      <div className="class-details-container">
+        <button className="back-button" onClick={() => navigate(-1)}>
+          <GoArrowLeft />
+        </button>
+        <h1 className="class-title">{selectedClass.title}</h1>
+        <p className="class-teacher">Taught by: {selectedClass.teacher}</p>
+        <p className="class-description">{selectedClass.description}</p>
+        {/* Pass title to FileUpload */}
+        <FileUpload subject={selectedClass.title} />
+      </div>
+      <Chatbot />
     </div>
   );
 };

@@ -125,14 +125,6 @@ const Chatbot = () => {
     setInput(textarea.value); // Update the state with the input value
   };
 
-  // Reset input field size to original size (min height)
-  const resetInputSize = () => {
-    if (inputRef.current) {
-      inputRef.current.style.height = "20px"; // Reset height to default (or a min height)
-      setHeightAdjusted(false); // Reset height adjustment state
-    }
-  };
-
   return (
     <div className="chatbox">
       <div className="chathistory">
