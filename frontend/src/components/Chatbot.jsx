@@ -3,6 +3,7 @@ import "../styles/chatbox.css";
 import axios from "axios";
 import { FaPaperPlane } from "react-icons/fa";
 import Loader from "./Loader";
+
 const Chatbot = () => {
   const [input, setInput] = useState(""); // For user input
   const [chatHistory, setChatHistory] = useState([]); // To store chat history
@@ -31,19 +32,39 @@ const Chatbot = () => {
       );
 
       console.log("Chunk response:", chunkResponse.data);
+      console.log("Model initialization response:", modelstart.data);
+    } catch (error) {
+      console.error("Error:", error.response?.data || error.message);
 
-      // Step 2: Call RAG pipeline
-      const ragResponse = await axios.post(
+      setChatHistory((prev) => [
+        ...prev,
+        { role: "Bot", message: "There was an error starting the chat. Please try again." },
+      ]);
+    } finally {
+      setLoadingScreen(false); // Hide loading screen
+    }
+  };
+
+  const handleSend = async () => {
+    if (!input.trim()) return;
+
+    const userMessage = { role: "User", message: input };
+    setChatHistory((prev) => [...prev, userMessage]); // Add user message
+    setInput(""); // Clear input
+    const textarea = inputRef.current;
+    if (textarea) {
+      textarea.style.height = "auto"; // Reset to original size
+    }
+    setLoadingScreen(true); // Show loading screen
+
+    try {
+      // Call RAG pipeline
+      const response = await axios.post(
         "http://localhost:5000/rag",
-        { query: input }, // Pass user input as query
-        {
-          headers: {
-            "Content-Type": "application/json", // Explicitly set content type
-          },
-        }
+        { query: input },
+        { headers: { "Content-Type": "application/json" } }
       );
-
-      console.log("RAG response:", ragResponse.data);
+      console.log("RAG response:", response.data);
 
       const botResponse = {
         role: "Bot",
@@ -124,12 +145,6 @@ const Chatbot = () => {
               wordWrap: "break-word",
             }}
           >
-            <strong>{chat.role}:</strong>
-            {chat.isHtml ? (
-              <div dangerouslySetInnerHTML={{ __html: chat.message }}></div>
-            ) : (
-              chat.message
-            )}
             <strong>{chat.role}:</strong>
             {chat.isHtml ? (
               <div dangerouslySetInnerHTML={{ __html: chat.message }}></div>
