@@ -9,89 +9,80 @@ const Chatbot = () => {
   const [chatHistory, setChatHistory] = useState([]); // To store chat history
   const chatEndRef = useRef(null);
   const inputRef = useRef(null); // Reference for the input textarea
-  const [loading, setLoading] = useState(false);
-  const [heightAdjusted, setHeightAdjusted] = useState(false); // State to track if the height adjustment should occur
+  const [loadingScreen, setLoadingScreen] = useState(false); // State for loading overlay
   const [start, setStart] = useState(true);
 
   const handleStart = async () => {
-    setLoading(true);
-    const filePath = "E:\\Finalyear_project\\EduRAG\\backend\\example1.pdf"; // File path for testing
+    setLoadingScreen(true); // Show loading screen
+    const filePath = "H:\\FRONTEND\\EduRAG\\backend\\example1.pdf"; // File path for testing
     setStart(false);
+
     try {
-      // Step 1: Chunk the file
+      // Chunk the file
       const chunkResponse = await axios.post(
-        'http://localhost:5000/chunk',
-        { filePath }, // Pass filePath as JSON
-        {
-          headers: {
-            'Content-Type': 'application/json', // Explicitly set content type
-          },
-        }
-      )
-        .finally(() => {
-          setLoading(false);
-        });
+        "http://localhost:5000/chunk",
+        { filePath },
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      // Initialize the model
+      const modelstart = await axios.post(
+        "http://localhost:5000/initialize",
+        { headers: { "Content-Type": "application/json" } }
+      );
 
       console.log("Chunk response:", chunkResponse.data);
-      const modelstart = await axios.post('http://localhost:5000/initialize', {
-        headers: {
-          'Content-Type': 'application/json', // Explicitly set content type
-        },
-      });
-      console.log("model initialization response:", modelstart.data);
+      console.log("Model initialization response:", modelstart.data);
     } catch (error) {
       console.error("Error:", error.response?.data || error.message);
 
-      const botErrorResponse = {
-        role: "Bot",
-        message: "There was an error processing your request. Please try again.",
-      };
-      setChatHistory((prev) => [...prev, botErrorResponse]);
+      setChatHistory((prev) => [
+        ...prev,
+        { role: "Bot", message: "There was an error starting the chat. Please try again." },
+      ]);
+    } finally {
+      setLoadingScreen(false); // Hide loading screen
     }
   };
 
   const handleSend = async () => {
-    setLoading(true);
     if (!input.trim()) return;
+
     const userMessage = { role: "User", message: input };
-    setChatHistory((prev) => [...prev, userMessage]); // Add user message immediately
+    setChatHistory((prev) => [...prev, userMessage]); // Add user message
+    setInput(""); // Clear input
+    const textarea = inputRef.current;
+    if (textarea) {
+      textarea.style.height = "auto"; // Reset to original size
+    }
+    setLoadingScreen(true); // Show loading screen
 
     try {
-      // Step 2: Call RAG pipeline
-      const ragResponse = await axios.post(
-        'http://localhost:5000/rag',
-        { query: input }, // Pass user input as query
-        {
-          headers: {
-            'Content-Type': 'application/json', // Explicitly set content type
-          },
-        }
-      )
-        .finally(() => {
-          setLoading(false);
-        });
-
-      console.log("RAG response:", ragResponse.data);
+      // Call RAG pipeline
+      const response = await axios.post(
+        "http://localhost:5000/rag",
+        { query: input },
+        { headers: { "Content-Type": "application/json" } }
+      );
+      console.log("RAG response:", response.data);
 
       const botResponse = {
         role: "Bot",
-        message: ragResponse.data.answer || "No response received.",
-        isHtml: true, // Mark this response as HTML content
+        message: response.data.answer || "No response received.",
+        isHtml: true, // Mark as HTML content
       };
 
       setChatHistory((prev) => [...prev, botResponse]);
     } catch (error) {
       console.error("Error:", error.response?.data || error.message);
 
-      const botErrorResponse = {
-        role: "Bot",
-        message: "There was an error processing your request. Please try again.",
-      };
-
-      setChatHistory((prev) => [...prev, botErrorResponse]);
+      setChatHistory((prev) => [
+        ...prev,
+        { role: "Bot", message: "There was an error processing your request. Please try again." },
+      ]);
+    } finally {
+      setLoadingScreen(false); // Hide loading screen
     }
-
-    setInput(""); // Clear input after sending
   };
 
   // Scroll to the bottom whenever the chatHistory changes
@@ -99,35 +90,47 @@ const Chatbot = () => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatHistory]);
 
-  // Handle the "Enter" key for sending messages and "Shift + Enter" for new lines
+  // Handle "Enter" key for sending messages
   const handleKeyPress = (event) => {
     if (event.key === "Enter" && !event.shiftKey && input.trim()) {
-      event.preventDefault(); // Prevent default behavior (like a newline)
-      handleSend(); // Send the message when Enter is pressed
-    } else if (event.key === "Enter" && event.shiftKey) {
-      return;
+      event.preventDefault();
+      handleSend();
     }
   };
 
-  // Adjust the height of the textarea based on the content (only after the first line is filled)
   const handleInputChange = (e) => {
-    const textarea = e.target;
-    if (!heightAdjusted && textarea.scrollHeight > textarea.clientHeight) {
-      // Allow height adjustment only if the content overflows after the first line
-      setHeightAdjusted(true);
-    }
+    setInput(e.target.value);
+    adjustTextareaHeight();
+  };
 
-    if (heightAdjusted) {
-      textarea.style.height = "auto"; // Reset height to auto to allow resizing
-      textarea.style.height = `${textarea.scrollHeight}px`; // Adjust height based on scrollHeight
-    }
+  const adjustTextareaHeight = () => {
+    const textarea = inputRef.current;
+    if (textarea) {
+      const lineHeight = parseInt(getComputedStyle(textarea).lineHeight, 10); // Get line-height in pixels
+      const maxLines = 5; // Maximum number of lines before enabling scroll
+      const maxHeight = lineHeight * maxLines;
 
-    setInput(textarea.value); // Update the state with the input value
+      // Reset height to auto to shrink the height on delete
+      textarea.style.height = "auto";
+
+      // Adjust height based on scrollHeight
+      if (textarea.scrollHeight > maxHeight) {
+        textarea.style.height = `${maxHeight}px`;
+        textarea.style.overflowY = "scroll"; // Enable scroll when exceeding 3 lines
+      } else {
+        textarea.style.height = `${textarea.scrollHeight}px`;
+        textarea.style.overflowY = "hidden"; // Hide scroll otherwise
+      }
+    }
   };
 
   return (
     <div className="chatbox">
       <div className="chathistory">
+        {/* Semi-transparent overlay when loading */}
+        {loadingScreen && <div className="loading-overlay"><Loader /></div>}
+
+        {/* Chat messages */}
         {chatHistory.map((chat, index) => (
           <div
             key={index}
@@ -150,33 +153,39 @@ const Chatbot = () => {
             )}
           </div>
         ))}
-        {loading && <div><Loader /></div>}
         <div ref={chatEndRef}></div>
       </div>
+
+      {/* Start button or input area */}
       {start ? (
-        <div>
-          <button onClick={handleStart} className="startchat">Start</button>
-        </div>
+        <button onClick={handleStart} className="startchat" disabled={loadingScreen}>
+          Start
+        </button>
       ) : (
         <div className="inputbox">
           <textarea
             ref={inputRef}
-            value={input} // Controlled input (value tied to state)
-            onChange={handleInputChange} // Update input value as the user types
-            onKeyDown={handleKeyPress} // Handle key events (e.g., Enter)
+            value={input}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyPress}
             placeholder="Type your question..."
             rows="1"
             style={{
-              resize: "none", // Disabling manual resize to control the height via JS
-              minHeight: "40px", // Minimum height for the input (change this as needed)
-              width: "100%", // Ensure it takes full width
+              resize: "none",
+              width: "100%",
               padding: "10px",
               fontSize: "16px",
               borderRadius: "5px",
               border: "1px solid #ccc",
+              lineHeight: "24px", // Set a fixed line height (e.g., 24px)
             }}
+            disabled={loadingScreen} // Disable the textarea when loading
           ></textarea>
-          <FaPaperPlane className="send-icon" onClick={handleSend} />
+          <FaPaperPlane
+            className="send-icon"
+            onClick={handleSend}
+            disabled={loadingScreen} // Disable the send button when loading
+          />
         </div>
       )}
     </div>
