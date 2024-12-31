@@ -1,0 +1,49 @@
+/* profile.css */
+
+.profile-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #f4f4f9;
+    font-family: "Arial", sans-serif;
+    padding: 20px;
+  }
+  
+  .profile-card {
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    max-width: 500px;
+    width: 100%;
+    padding: 20px 30px;
+    text-align: center;
+  }
+  
+  .profile-title {
+    font-size: 24px;
+    color: #333333;
+    margin-bottom: 20px;
+  }
+  
+  .profile-details p {
+    font-size: 16px;
+    color: #555555;
+    margin: 10px 0;
+  }
+  
+  .profile-details strong {
+    color: #333333;
+  }
+  
+  .error-message {
+    color: #d9534f;
+    font-size: 16px;
+    margin-top: 20px;
+  }
+  
+  .loading-message {
+    font-size: 18px;
+    color: #666666;
+  }
+  

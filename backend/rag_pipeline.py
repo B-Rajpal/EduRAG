@@ -12,6 +12,7 @@ from langchain.embeddings import HuggingFaceEmbeddings
 import ollama
 from langchain.llms.base import LLM
 import markdown
+from files import preview_subject_files  # Import the function
 
 # Flask app setup
 app = Flask(__name__)
@@ -22,20 +23,8 @@ UPLOAD_FOLDER = 'uploads/'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # Global variables to hold processed data
-vector_store = None
 ollama_llm = None
-
-def process_pdf(file_path):
-    """Process the PDF and update the global vector store."""
-    global vector_store
-    loader = PyPDFLoader(file_path)
-    documents = loader.load()
-
-    token_splitter = TokenTextSplitter(chunk_size=500, chunk_overlap=50)
-    embedding_model = HuggingFaceEmbeddings(model_name='all-MiniLM-L6-v2')
-    texts = token_splitter.split_documents(documents)
-
-    vector_store = FAISS.from_documents(texts, embedding=embedding_model)
+vector_stores = {}
 
 # Define a custom LLM wrapper for Ollama to integrate with LangChain
 class OllamaLLM(LLM, BaseModel):
@@ -43,12 +32,12 @@ class OllamaLLM(LLM, BaseModel):
 
     def _call(self, prompt: str, stop=None):
         response = ollama.generate(model=self.model_name, prompt=prompt)
-        print(response)
         return response["response"]
 
     @property
     def _llm_type(self):
         return "ollama"
+
 
 # Define the prompt template
 prompt_template = """Use the following pieces of context to answer the question at the end.
@@ -62,6 +51,7 @@ PROMPT = PromptTemplate(
     template=prompt_template, input_variables=["context", "question"]
 )
 
+
 @app.route('/initialize', methods=['POST'])
 def initialize_model():
     """Endpoint to initialize the Ollama model."""
@@ -74,61 +64,123 @@ def initialize_model():
     else:
         return jsonify({"message": "Model already initialized"}), 200
 
+
 @app.route('/upload', methods=['POST'])
 def upload_file():
     """Endpoint to upload and save the file."""
-    if 'file' not in request.files:
+    if 'files' not in request.files:
         return jsonify({"error": "No file part"}), 400
 
-    file = request.files['file']
+    file = request.files['files']
+    subject = request.form.get('subject')
 
     if file.filename == '':
         return jsonify({"error": "No selected file"}), 400
+    
+    
+    subject_path = os.path.join(UPLOAD_FOLDER, subject)
+    os.makedirs(subject_path, exist_ok=True)  # Ensure the directory is created
 
-    file_path = os.path.join(UPLOAD_FOLDER, "uploaded_" + file.filename)
+    file_path = os.path.join(subject_path, "uploaded_" + file.filename)
     file.save(file_path)
 
     return jsonify({"message": "File uploaded successfully", "filePath": file_path}), 200
 
-@app.route('/chunk', methods=['POST'])
-def chunk_file():
-    """Endpoint to process the uploaded file into chunks."""
-    data = request.get_json()
-    file_path = data.get("filePath")
 
-    if not file_path or not os.path.exists(file_path):
-        return jsonify({"error": "Invalid or missing file path"}), 400
+@app.route('/chunk', methods=['POST'])
+def chunk_files():
+    """Endpoint to process multiple uploaded files into chunks."""
+    data = request.get_json()
+    file_paths = data.get("filePaths")
+    subject = data.get("subject")
+
+    if not file_paths or not isinstance(file_paths, list):
+        return jsonify({"error": "Invalid or missing file paths"}), 400
+    if not subject:
+        return jsonify({"error": "Subject is required"}), 400
+
+    subject_folder = os.path.join(UPLOAD_FOLDER, subject)
+    vector_store_file = os.path.join(subject_folder, "vector_store")
+    os.makedirs(subject_folder, exist_ok=True)
 
     try:
-        process_pdf(file_path)
-        return jsonify({"message": "File processed successfully"}), 200
+        embedding_model = HuggingFaceEmbeddings(model_name='all-MiniLM-L6-v2')
+        vector_store = None
+        # Process each file
+        for file_path in file_paths:
+            if os.path.exists(file_path):
+                loader = PyPDFLoader(file_path)
+                documents = loader.load()
+
+                token_splitter = TokenTextSplitter(chunk_size=500, chunk_overlap=50)
+                texts = token_splitter.split_documents(documents)
+
+                vector_store = FAISS.from_documents(texts, embedding=embedding_model)
+            else:
+                return jsonify({"error": f"File not found: {file_path}"}), 400
+
+        # Save the vector store
+        vector_store.save_local(vector_store_file)
+        vector_stores[subject] = vector_store  # Cache the vector store in memory
+
+        return jsonify({"message": "Files processed and vector store updated successfully"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@app.route('/preview', methods=['GET'])
+def preview_files():
+    """Endpoint to preview files for a given subject."""
+    subject = request.args.get("subject")
+
+    if not subject:
+        return jsonify({"error": "Subject is required"}), 400
+
+    subject_folder = os.path.join(UPLOAD_FOLDER, subject)
+    if not os.path.exists(subject_folder):
+        return jsonify({"error": f"Subject folder '{subject}' does not exist."}), 404
+
+    try:
+        files = os.listdir(subject_folder)
+        return jsonify({"subject": subject, "files": files}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 @app.route('/rag', methods=['POST'])
 def rag_pipeline():
     """Endpoint to handle the RAG pipeline for queries."""
-    global vector_store, ollama_llm
-
-    if vector_store is None:
-        return jsonify({"error": "Vector store is not initialized. Please process a file first."}), 400
-    if ollama_llm is None:
-        return jsonify({"error": "Model is not initialized. Please initialize the model first."}), 400
-
     data = request.get_json()
     query = data.get("query")
+    subject = data.get("subject")
 
     if not query:
         return jsonify({"error": "Query is required"}), 400
+    if not subject:
+        return jsonify({"error": "Subject is required"}), 400
 
     try:
+        # Use the cached vector store if available
+        if subject in vector_stores:
+            vector_store = vector_stores[subject]
+        else:
+            # Reload from disk if not in memory
+            subject_folder = os.path.join(UPLOAD_FOLDER, subject)
+            vector_store_file = os.path.join(subject_folder, "vector_store")
+            if not os.path.exists(vector_store_file):
+                return jsonify({"error": f"No data available for the subject '{subject}'."}), 400
+
+            embedding_model = HuggingFaceEmbeddings(model_name='all-MiniLM-L6-v2')
+            vector_store = FAISS.load_local(vector_store_file, embedding_model)
+            vector_stores[subject] = vector_store
+
         # Define the RetrievalQA chain
         qa = RetrievalQA.from_chain_type(
             llm=ollama_llm,
             chain_type="stuff",
             retriever=vector_store.as_retriever(search_kwargs={"k": 5}),
             chain_type_kwargs={"prompt": PROMPT},
-            return_source_documents=False  # Ensure source documents are not returned
+            return_source_documents=False
         )
 
         result = qa({"query": query})
@@ -138,6 +190,7 @@ def rag_pipeline():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
