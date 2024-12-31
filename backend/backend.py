@@ -92,17 +92,39 @@ def login():
     if user and bcrypt.checkpw(password.encode("utf-8"), user["password"].encode("utf-8")):
         return jsonify({
             "message": "Login successful",
-            "role": user["role"],  # Return the role (teacher/student) for frontend routing
-            "user": {
-                "email": user["email"],
-                "firstName": user["first_name"],
-                "lastName": user["last_name"],
-                "schoolName": user["school_name"],
-                "country": user["country"]
-            }
+            "userId": user["id"],  # Return user ID
+            "email": user["email"],  # Return email
+            "role": user["role"],  # Return role for frontend routing
         }), 200
     else:
         return jsonify({"error": "Invalid email or password"}), 401
+
+# Profile API
+@app.route("/profile", methods=["GET"])
+def profile():
+    # Example: Using a query parameter or header for user identification
+    user_id = request.headers.get("Authorization")  # Fetch user ID from header (better with tokens)
+
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cursor:
+            cursor.execute("""
+                SELECT email, first_name, last_name, school_name, country, role 
+                FROM users WHERE id = %s
+            """, (user_id,))
+            user = cursor.fetchone()
+        conn.close()
+
+        if user:
+            return jsonify({"user": user}), 200
+        else:
+            return jsonify({"error": "User not found"}), 404
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001)

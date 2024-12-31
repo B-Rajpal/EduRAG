@@ -1,16 +1,17 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";  // Use useNavigate instead of useHistory
-import axios from "axios";  // Import axios
-import "../styles/login.css";  // Import the CSS file
+import { useNavigate } from "react-router-dom"; // Use useNavigate for navigation
+import axios from "axios"; // Import axios for HTTP requests
+import "../styles/login.css"; // Import the CSS file
 
 const Login = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const navigate = useNavigate();  // Use the navigate function
+  const [email, setEmail] = useState(""); // State for email
+  const [password, setPassword] = useState(""); // State for password
+  const [error, setError] = useState(""); // State for error messages
+  const navigate = useNavigate(); // React Router's useNavigate hook
 
+  // Handle form submission
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e.preventDefault(); // Prevent default form submission behavior
 
     try {
       const response = await axios.post("http://localhost:5001/login", {
@@ -18,20 +19,16 @@ const Login = () => {
         password,
       });
 
-      const { role, user } = response.data;
-
-      // Store user info in localStorage for persistence
-      localStorage.setItem("email", user.email);
-      localStorage.setItem("role", role);
-
-      // Redirect based on role using navigate
-      if (role === "admin") {
-        navigate("/admin");  // Navigate to the Admin page
-      } else {
-        navigate("/user");   // Navigate to the User page
-      }
+      const { userId } = response.data; // Extract userId from response
+      localStorage.setItem("userId", userId); // Store userId in localStorage
+      navigate("/"); // Redirect to the profile page
     } catch (err) {
-      setError("Invalid credentials, please try again.");
+      // Handle errors
+      if (err.response && err.response.data) {
+        setError(err.response.data.error); // Show error message from backend
+      } else {
+        setError("An unexpected error occurred. Please try again."); // General error message
+      }
     }
   };
 
@@ -45,8 +42,8 @@ const Login = () => {
             type="email"
             id="email"
             name="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={email} // Bind state to input
+            onChange={(e) => setEmail(e.target.value)} // Update state on change
             required
             className="input-field"
           />
@@ -57,13 +54,13 @@ const Login = () => {
             type="password"
             id="password"
             name="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            value={password} // Bind state to input
+            onChange={(e) => setPassword(e.target.value)} // Update state on change
             required
             className="input-field"
           />
         </div>
-        {error && <div className="error-message">{error}</div>}
+        {error && <div className="error-message">{error}</div>} {/* Display error message */}
         <button type="submit" className="submit-button">
           Login
         </button>
