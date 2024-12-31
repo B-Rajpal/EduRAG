@@ -12,6 +12,7 @@ from langchain.embeddings import HuggingFaceEmbeddings
 import ollama
 from langchain.llms.base import LLM
 import markdown
+from files import preview_subject_files  # Import the function
 
 # Flask app setup
 app = Flask(__name__)
@@ -23,29 +24,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # Global variables to hold processed data
 ollama_llm = None
-
-
-def process_pdf(file_path, subject):
-    """Process the PDF and update the vector store for a subject."""
-    subject_folder = os.path.join(UPLOAD_FOLDER, subject)
-    vector_store_file = os.path.join(subject_folder, "vector_store")
-    os.makedirs(subject_folder, exist_ok=True)
-
-    loader = PyPDFLoader(file_path)
-    documents = loader.load()
-
-    token_splitter = TokenTextSplitter(chunk_size=500, chunk_overlap=50)
-    embedding_model = HuggingFaceEmbeddings(model_name='all-MiniLM-L6-v2')
-    texts = token_splitter.split_documents(documents)
-
-    if os.path.exists(vector_store_file):
-        vector_store = FAISS.load_local(vector_store_file, embedding_model)
-    else:
-        vector_store = FAISS()
-
-    vector_store.add_documents(texts)
-    vector_store.save_local(vector_store_file)
-
+vector_stores = {}
 
 # Define a custom LLM wrapper for Ollama to integrate with LangChain
 class OllamaLLM(LLM, BaseModel):
@@ -87,30 +66,25 @@ def initialize_model():
 
 
 @app.route('/upload', methods=['POST'])
-def upload_files():
-    """Endpoint to upload and save multiple files under a subject folder."""
-    subject = request.form.get('subject')  # Retrieve subject from form data
-    if not subject:
-        return jsonify({"error": "Subject is required"}), 400
-
+def upload_file():
+    """Endpoint to upload and save the file."""
     if 'files' not in request.files:
-        return jsonify({"error": "No files part"}), 400
+        return jsonify({"error": "No file part"}), 400
 
-    files = request.files.getlist('files')
-    if not files:
-        return jsonify({"error": "No selected files"}), 400
+    file = request.files['files']
+    subject = request.form.get('subject')
 
-    subject_folder = os.path.join(UPLOAD_FOLDER, subject)
-    os.makedirs(subject_folder, exist_ok=True)
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+    
+    
+    subject_path = os.path.join(UPLOAD_FOLDER, subject)
+    os.makedirs(subject_path, exist_ok=True)  # Ensure the directory is created
 
-    file_paths = []
-    for file in files:
-        if file.filename:
-            file_path = os.path.join(subject_folder, "uploaded_" + file.filename)
-            file.save(file_path)
-            file_paths.append(file_path)
+    file_path = os.path.join(subject_path, "uploaded_" + file.filename)
+    file.save(file_path)
 
-    return jsonify({"message": "Files uploaded successfully", "filePaths": file_paths}), 200
+    return jsonify({"message": "File uploaded successfully", "filePath": file_path}), 200
 
 
 @app.route('/chunk', methods=['POST'])
@@ -125,14 +99,50 @@ def chunk_files():
     if not subject:
         return jsonify({"error": "Subject is required"}), 400
 
+    subject_folder = os.path.join(UPLOAD_FOLDER, subject)
+    vector_store_file = os.path.join(subject_folder, "vector_store")
+    os.makedirs(subject_folder, exist_ok=True)
+
     try:
+        embedding_model = HuggingFaceEmbeddings(model_name='all-MiniLM-L6-v2')
+        vector_store = None
+        # Process each file
         for file_path in file_paths:
             if os.path.exists(file_path):
-                process_pdf(file_path, subject)
+                loader = PyPDFLoader(file_path)
+                documents = loader.load()
+
+                token_splitter = TokenTextSplitter(chunk_size=500, chunk_overlap=50)
+                texts = token_splitter.split_documents(documents)
+
+                vector_store = FAISS.from_documents(texts, embedding=embedding_model)
             else:
                 return jsonify({"error": f"File not found: {file_path}"}), 400
 
-        return jsonify({"message": "Files processed successfully"}), 200
+        # Save the vector store
+        vector_store.save_local(vector_store_file)
+        vector_stores[subject] = vector_store  # Cache the vector store in memory
+
+        return jsonify({"message": "Files processed and vector store updated successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/preview', methods=['GET'])
+def preview_files():
+    """Endpoint to preview files for a given subject."""
+    subject = request.args.get("subject")
+
+    if not subject:
+        return jsonify({"error": "Subject is required"}), 400
+
+    subject_folder = os.path.join(UPLOAD_FOLDER, subject)
+    if not os.path.exists(subject_folder):
+        return jsonify({"error": f"Subject folder '{subject}' does not exist."}), 404
+
+    try:
+        files = os.listdir(subject_folder)
+        return jsonify({"subject": subject, "files": files}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -149,16 +159,20 @@ def rag_pipeline():
     if not subject:
         return jsonify({"error": "Subject is required"}), 400
 
-    subject_folder = os.path.join(UPLOAD_FOLDER, subject)
-    vector_store_file = os.path.join(subject_folder, "vector_store")
-
-    if not os.path.exists(vector_store_file):
-        return jsonify({"error": f"No data available for the subject '{subject}'."}), 400
-
     try:
-        # Load vector store for the subject
-        embedding_model = HuggingFaceEmbeddings(model_name='all-MiniLM-L6-v2')
-        vector_store = FAISS.load_local(vector_store_file, embedding_model)
+        # Use the cached vector store if available
+        if subject in vector_stores:
+            vector_store = vector_stores[subject]
+        else:
+            # Reload from disk if not in memory
+            subject_folder = os.path.join(UPLOAD_FOLDER, subject)
+            vector_store_file = os.path.join(subject_folder, "vector_store")
+            if not os.path.exists(vector_store_file):
+                return jsonify({"error": f"No data available for the subject '{subject}'."}), 400
+
+            embedding_model = HuggingFaceEmbeddings(model_name='all-MiniLM-L6-v2')
+            vector_store = FAISS.load_local(vector_store_file, embedding_model)
+            vector_stores[subject] = vector_store
 
         # Define the RetrievalQA chain
         qa = RetrievalQA.from_chain_type(

@@ -1,13 +1,16 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import "../styles/classdetails.css";
 import Chatbot from "../components/Chatbot";
 import { GoArrowLeft } from "react-icons/go";
 import FileUpload from "../components/Fileupload";
+import axios from "axios";
 
 const ClassDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [files, setFiles] = useState([]);
+  const [error, setError] = useState(null);
 
   const classes = [
     { id: "1", title: "Mathematics", teacher: "Mr. Smith", description: "Learn algebra, geometry, and calculus." },
@@ -17,6 +20,16 @@ const ClassDetails = () => {
   ];
 
   const selectedClass = classes.find((classItem) => classItem.id === id);
+
+  useEffect(() => {
+    if (selectedClass) {
+      // Fetch files for the selected subject
+      axios
+        .get(`http://localhost:5000/preview?subject=${selectedClass.title}`)
+        .then((response) => setFiles(response.data.files || []))
+        .catch((err) => setError(err.message));
+    }
+  }, [selectedClass]);
 
   if (!selectedClass) {
     return (
@@ -40,8 +53,22 @@ const ClassDetails = () => {
         <p className="class-description">{selectedClass.description}</p>
         {/* Pass title to FileUpload */}
         <FileUpload subject={selectedClass.title} />
+
+        <div className="file-preview">
+          <h2>Preview Files</h2>
+          {error && <p className="error">{error}</p>}
+          {files.length > 0 ? (
+            <ul>
+              {files.map((file, index) => (
+                <li key={index}>{file}</li>
+              ))}
+            </ul>
+          ) : (
+            <p>No files available for this subject.</p>
+          )}
+        </div>
       </div>
-      <Chatbot />
+      <Chatbot subject={selectedClass.title}/>
     </div>
   );
 };

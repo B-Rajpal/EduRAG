@@ -4,7 +4,7 @@ import axios from "axios";
 import { FaPaperPlane } from "react-icons/fa";
 import Loader from "./Loader";
 
-const Chatbot = () => {
+const Chatbot = ({ subject }) => {
   const [input, setInput] = useState(""); // For user input
   const [chatHistory, setChatHistory] = useState([]); // To store chat history
   const chatEndRef = useRef(null);
@@ -14,31 +14,35 @@ const Chatbot = () => {
 
   const handleStart = async () => {
     setLoadingScreen(true); // Show loading screen
-    const filePath = "H:\\FRONTEND\\EduRAG\\backend\\example1.pdf"; // File path for testing
+    const files = ["E:\\Finalyear_project\\EduRAG\\backend\\example1.pdf"];
     setStart(false);
 
     try {
-      // Chunk the file
+      // Initialize the model
+      const modelResponse = await axios.post(
+        "http://localhost:5000/initialize",
+        {},
+        { headers: { "Content-Type": "application/json" } }
+      );
+      console.log("Model initialization response:", modelResponse.data);
+      // Chunk the files and initialize the model
       const chunkResponse = await axios.post(
         "http://localhost:5000/chunk",
-        { filePath },
+        {
+          filePaths: files,
+          subject: subject, // Specify a default subject or make this dynamic
+        },
         { headers: { "Content-Type": "application/json" } }
       );
-
-      // Initialize the model
-      const modelstart = await axios.post(
-        "http://localhost:5000/initialize",
-        { headers: { "Content-Type": "application/json" } }
-      );
-
       console.log("Chunk response:", chunkResponse.data);
-      console.log("Model initialization response:", modelstart.data);
     } catch (error) {
       console.error("Error:", error.response?.data || error.message);
-
       setChatHistory((prev) => [
         ...prev,
-        { role: "Bot", message: "There was an error starting the chat. Please try again." },
+        {
+          role: "Bot",
+          message: "There was an error starting the chat. Please try again.",
+        },
       ]);
     } finally {
       setLoadingScreen(false); // Hide loading screen
@@ -61,7 +65,7 @@ const Chatbot = () => {
       // Call RAG pipeline
       const response = await axios.post(
         "http://localhost:5000/rag",
-        { query: input },
+        { query: input, subject: subject }, // Use the same subject as in handleStart
         { headers: { "Content-Type": "application/json" } }
       );
       console.log("RAG response:", response.data);
@@ -75,10 +79,12 @@ const Chatbot = () => {
       setChatHistory((prev) => [...prev, botResponse]);
     } catch (error) {
       console.error("Error:", error.response?.data || error.message);
-
       setChatHistory((prev) => [
         ...prev,
-        { role: "Bot", message: "There was an error processing your request. Please try again." },
+        {
+          role: "Bot",
+          message: "There was an error processing your request. Please try again.",
+        },
       ]);
     } finally {
       setLoadingScreen(false); // Hide loading screen
@@ -128,7 +134,11 @@ const Chatbot = () => {
     <div className="chatbox">
       <div className="chathistory">
         {/* Semi-transparent overlay when loading */}
-        {loadingScreen && <div className="loading-overlay"><Loader /></div>}
+        {loadingScreen && (
+          <div className="loading-overlay">
+            <Loader />
+          </div>
+        )}
 
         {/* Chat messages */}
         {chatHistory.map((chat, index) => (
