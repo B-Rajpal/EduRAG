@@ -17,6 +17,9 @@ const Home = () => {
   const handleClassClick = (id) => {
     navigate(`/class/${id}`);
   };
+  const handleNavigation = () => {
+    navigate("/profile"); // Change "/profile" to your desired route
+  };
 
   return (
       //   <button className="create-class-button">
@@ -25,8 +28,10 @@ const Home = () => {
       <div className="classroom-container">
       <header className="classroom-header">
       <h1>Google Classroom...</h1>
-
-      <FontAwesomeIcon icon={faUser} />
+      <div>
+      <FontAwesomeIcon icon={faUser}
+      onClick={handleNavigation}  />
+      </div>
       </header>
 
       <div className="class-grid">

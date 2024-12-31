@@ -14,7 +14,7 @@ const Chatbot = ({ subject }) => {
 
   const handleStart = async () => {
     setLoadingScreen(true); // Show loading screen
-    const files = ["E:\\Finalyear_project\\EduRAG\\backend\\example1.pdf"];
+    const filePath = "H:\\FRONTEND\\EduRAG\\backend\\example1.pdf"; // File path for testing
     setStart(false);
 
     try {
