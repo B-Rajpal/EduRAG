@@ -43,9 +43,22 @@ const ClassDetails = () => {
     }
   };
 
+  const handleDeleteFile = async (fileName) => {
+    try {
+      await axios.delete(`http://localhost:5000/delete`, {
+        data: { fileName, subject: selectedClass.class.title },
+      });
+      alert(`${fileName} deleted successfully.`);
+      fetchFiles(); 
+    } catch (error) {
+      console.error("Error deleting file:", error);
+      alert("Failed to delete file.");
+    }
+  };
+
   useEffect(() => {
-    if(files){
-    fetchFiles();
+    if (selectedClass) {
+      fetchFiles();
     }
   }, [selectedClass]);
 
@@ -85,7 +98,15 @@ const ClassDetails = () => {
           ) : files.length > 0 ? (
             <ul>
               {files.map((file, index) => (
-                <li key={index}>{file}</li>
+                <li key={index}>
+                  {file}
+                  <button
+                    onClick={() => handleDeleteFile(file)}
+                    className="delete-button"
+                  >
+                    Delete
+                  </button>
+                </li>
               ))}
             </ul>
           ) : (

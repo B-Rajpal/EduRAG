@@ -86,6 +86,29 @@ def upload_file():
 
     return jsonify({"message": "File uploaded successfully", "filePath": file_path}), 200
 
+@app.route('/delete', methods=['DELETE'])
+def delete_file():
+    """Endpoint to delete a file."""
+    data = request.get_json()
+    file_name = data.get("fileName")
+    subject = data.get("subject")
+
+    if not file_name or not subject:
+        return jsonify({"error": "File name and subject are required"}), 400
+
+    subject_folder = os.path.join(UPLOAD_FOLDER, subject)
+    if not os.path.exists(subject_folder):
+        return jsonify({"error": f"Subject folder '{subject}' does not exist."}), 404
+
+    file_path = os.path.join(subject_folder, file_name)
+    if os.path.exists(file_path):
+        try:
+            os.remove(file_path)
+            return jsonify({"message": f"File '{file_name}' deleted successfully"}), 200
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    else:
+        return jsonify({"error": f"File '{file_name}' not found."}), 404
 
 @app.route('/chunk', methods=['POST'])
 def chunk_files():
@@ -202,6 +225,7 @@ def make_directory():
         return jsonify({"message": f"Directory '{subject}' created successfully."}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
