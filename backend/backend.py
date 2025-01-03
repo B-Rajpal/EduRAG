@@ -9,8 +9,8 @@ CORS(app)
 # MySQL Database Configuration
 DB_HOST = "localhost"
 DB_USER = "root"
-DB_PASSWORD = "root123"  # Replace with your MySQL root password
-DB_NAME = "user"
+DB_PASSWORD = "Rajpal@1704"  # Replace with your MySQL root password
+DB_NAME = "users"
 
 # Connect to the MySQL database
 def get_db_connection():
@@ -203,11 +203,6 @@ def get_class_by_id(class_id):
     except Exception as e:
         print(f"Error fetching class by ID: {e}")  # Log the error
         return jsonify({"error": "Internal server error"}), 500
-
-@app.route("/makedir", methods=["POST"])
-def make_directory():
-     os.makedirs(subject_path, exist_ok=True)
-
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001)

@@ -93,7 +93,7 @@ const ClassDetails = () => {
           )}
         </div>
       </div>
-      <Chatbot subject={selectedClass.title} />
+      <Chatbot subject={selectedClass.class.title} />
     </div>
   );
 };
