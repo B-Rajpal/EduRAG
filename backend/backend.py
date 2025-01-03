@@ -186,6 +186,28 @@ def profile():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+@app.route('/classes/<int:class_id>', methods=['GET'])
+def get_class_by_id(class_id):
+    """Endpoint to retrieve a class by its ID."""
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT * FROM classes WHERE id = %s", (class_id,))
+            class_data = cursor.fetchone()
+        conn.close()
+
+        if class_data:
+            return jsonify({"class": class_data}), 200
+        else:
+            return jsonify({"error": "Class not found"}), 404
+    except Exception as e:
+        print(f"Error fetching class by ID: {e}")  # Log the error
+        return jsonify({"error": "Internal server error"}), 500
+
+@app.route("/makedir", methods=["POST"])
+def make_directory():
+     os.makedirs(subject_path, exist_ok=True)
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001)

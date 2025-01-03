@@ -7,15 +7,17 @@ import Loader from "./Loader";
 const Chatbot = ({ subject }) => {
   const [input, setInput] = useState(""); // For user input
   const [chatHistory, setChatHistory] = useState([]); // To store chat history
-  const chatEndRef = useRef(null);
-  const inputRef = useRef(null); // Reference for the input textarea
   const [loadingScreen, setLoadingScreen] = useState(false); // State for loading overlay
-  const [start, setStart] = useState(true);
+  const [start, setStart] = useState(true);  
+  const [error, setError] = useState(false);  
+  const chatEndRef = useRef(null);
+  const inputRef = useRef(null); 
 
   const handleStart = async () => {
     setLoadingScreen(true); // Show loading screen
-    const files = ["H:\\project ai\\EduRAG\\backend\\example1.pdf"];
+    const files = ["E:\\final year project\\EduRAG\\backend\\example1.pdf"];
     setStart(false);
+    setError(false);  // Reset error state before trying to start
 
     try {
       // Initialize the model
@@ -37,6 +39,7 @@ const Chatbot = ({ subject }) => {
       console.log("Chunk response:", chunkResponse.data);
     } catch (error) {
       console.error("Error:", error.response?.data || error.message);
+      setError(true); // Set error state when there is an error
       setChatHistory((prev) => [
         ...prev,
         {
@@ -60,6 +63,7 @@ const Chatbot = ({ subject }) => {
       textarea.style.height = "auto"; // Reset to original size
     }
     setLoadingScreen(true); // Show loading screen
+    setError(false); // Reset error state before sending
 
     try {
       // Call RAG pipeline
@@ -79,6 +83,7 @@ const Chatbot = ({ subject }) => {
       setChatHistory((prev) => [...prev, botResponse]);
     } catch (error) {
       console.error("Error:", error.response?.data || error.message);
+      setError(true); // Set error state when there is an error
       setChatHistory((prev) => [
         ...prev,
         {
@@ -167,38 +172,41 @@ const Chatbot = ({ subject }) => {
       </div>
 
       {/* Start button or input area */}
-      {start ? (
+      {start && !error ? (
         <button onClick={handleStart} className="startchat" disabled={loadingScreen}>
           Start
         </button>
-      ) : (
+      ) : !error &&(
         <div className="inputbox">
-          <textarea
-            ref={inputRef}
-            value={input}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyPress}
-            placeholder="Type your question..."
-            rows="1"
-            style={{
-              resize: "none",
-              width: "100%",
-              padding: "10px",
-              fontSize: "16px",
-              borderRadius: "5px",
-              border: "1px solid #ccc",
-              lineHeight: "24px", // Set a fixed line height (e.g., 24px)
-            }}
-            disabled={loadingScreen} // Disable the textarea when loading
-          ></textarea>
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyPress}
+              placeholder="Type your question..."
+              rows="1"
+              style={{
+                resize: "none",
+                width: "100%",
+                padding: "10px",
+                fontSize: "16px",
+                borderRadius: "5px",
+                border: "1px solid #ccc",
+                lineHeight: "24px", // Set a fixed line height (e.g., 24px)
+              }}
+              disabled={loadingScreen} // Disable the textarea when loading
+            ></textarea>
+          
+       
           <FaPaperPlane
             className="send-icon"
             onClick={handleSend}
-            disabled={loadingScreen} // Disable the send button when loading
+            disabled={loadingScreen || error} // Disable the send button if there's an error
           />
         </div>
       )}
     </div>
+          
   );
 };
 
