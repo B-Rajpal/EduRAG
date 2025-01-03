@@ -9,8 +9,8 @@ CORS(app)
 # MySQL Database Configuration
 DB_HOST = "localhost"
 DB_USER = "root"
-DB_PASSWORD = "Rajpal@1704"  # Replace with your MySQL root password
-DB_NAME = "users"
+DB_PASSWORD = "root123"  # Replace with your MySQL root password
+DB_NAME = "user"
 
 # Connect to the MySQL database
 def get_db_connection():
@@ -27,7 +27,7 @@ def get_db_connection():
 def init_db():
     conn = get_db_connection()
     with conn.cursor() as cursor:
-        # Create users table with school_name and country
+        # Create users table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -37,8 +37,20 @@ def init_db():
                 last_name VARCHAR(50) NOT NULL,
                 school_name VARCHAR(255) NOT NULL,
                 country VARCHAR(100) NOT NULL,
-                role ENUM('teacher', 'student') NOT NULL DEFAULT 'student',  -- Fixed the role enum value
+                role ENUM('teacher', 'student') NOT NULL DEFAULT 'student',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # Create classes table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS classes (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                title VARCHAR(255) NOT NULL,
+                teacher VARCHAR(255) NOT NULL,
+                description TEXT NOT NULL,
+                created_by INT NOT NULL,
+                FOREIGN KEY (created_by) REFERENCES users(id)
             )
         """)
     conn.commit()
@@ -99,11 +111,60 @@ def login():
     else:
         return jsonify({"error": "Invalid email or password"}), 401
 
+# Create Class API
+@app.route("/classes", methods=["POST"])
+def create_class():
+    data = request.get_json()
+    title = data.get("title")
+    teacher = data.get("teacher")
+    description = data.get("description")
+    created_by = data.get("createdBy")  # Assume frontend sends the user ID of the creator
+
+    if not title or not teacher or not description or not created_by:
+        return jsonify({"error": "All fields are required!"}), 400
+
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cursor:
+            cursor.execute("""
+                INSERT INTO classes (title, teacher, description, created_by)
+                VALUES (%s, %s, %s, %s)
+            """, (title, teacher, description, created_by))
+            conn.commit()
+            new_class_id = cursor.lastrowid
+
+        return jsonify({"message": "Class created successfully!", "classId": new_class_id}), 201
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    finally:
+        conn.close()
+
+# Get All Classes API
+@app.route("/classes", methods=["GET"])
+def get_classes():
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cursor:
+            cursor.execute("""
+                SELECT *
+                FROM classes
+            """)
+            classes = cursor.fetchall()
+
+        return jsonify({"classes": classes}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    finally:
+        conn.close()
+
 # Profile API
 @app.route("/profile", methods=["GET"])
 def profile():
-    # Example: Using a query parameter or header for user identification
-    user_id = request.headers.get("Authorization")  # Fetch user ID from header (better with tokens)
+    user_id = request.headers.get("Authorization")  # Fetch user ID from header
 
     if not user_id:
         return jsonify({"error": "Unauthorized"}), 401
@@ -125,6 +186,28 @@ def profile():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+@app.route('/classes/<int:class_id>', methods=['GET'])
+def get_class_by_id(class_id):
+    """Endpoint to retrieve a class by its ID."""
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT * FROM classes WHERE id = %s", (class_id,))
+            class_data = cursor.fetchone()
+        conn.close()
+
+        if class_data:
+            return jsonify({"class": class_data}), 200
+        else:
+            return jsonify({"error": "Class not found"}), 404
+    except Exception as e:
+        print(f"Error fetching class by ID: {e}")  # Log the error
+        return jsonify({"error": "Internal server error"}), 500
+
+@app.route("/makedir", methods=["POST"])
+def make_directory():
+     os.makedirs(subject_path, exist_ok=True)
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001)

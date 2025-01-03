@@ -1,15 +1,14 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
-const FileUpload = ({ subject }) => {
+const FileUpload = ({ subject, onFileUpload }) => {
   const [files, setFiles] = useState([]);
 
-  // Handle file selection
+ 
   const handleFileChange = (event) => {
     setFiles(event.target.files);
   };
 
-  // Handle file upload
   const handleFileUpload = async () => {
     if (!files.length) {
       alert('Please select at least one file to upload.');
@@ -20,15 +19,17 @@ const FileUpload = ({ subject }) => {
     Array.from(files).forEach((file) => {
       formData.append('files', file);
     });
-    formData.append('subject', subject); // Include subject in the request
+    formData.append('subject', subject);
 
     try {
-      const response = await axios.post('http://localhost:5000/upload', formData, {
+      await axios.post('http://localhost:5000/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
-      alert(`Files uploaded successfully for ${subject}: ${response.data.message}`);
+      alert(`Files uploaded successfully for ${subject}.`);
+      onFileUpload();
+      setFiles([]); 
     } catch (error) {
       console.error('Upload failed:', error);
       alert('Error uploading files.');

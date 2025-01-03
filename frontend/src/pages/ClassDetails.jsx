@@ -9,37 +9,73 @@ import axios from "axios";
 const ClassDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [files, setFiles] = useState([]);
+  const [selectedClass, setSelectedClass] = useState(null);
+  const [files, setFiles] = useState([]); // State for storing files
   const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const classes = [
-    { id: "1", title: "Mathematics", teacher: "Mr. Smith", description: "Learn algebra, geometry, and calculus." },
-    { id: "2", title: "Science", teacher: "Mrs. Johnson", description: "Explore physics, chemistry, and biology." },
-    { id: "3", title: "History", teacher: "Mr. Lee", description: "Dive into world history and civilizations." },
-    { id: "4", title: "English", teacher: "Ms. Brown", description: "Improve your literature and language skills." },
-  ];
+  // Fetch class details and files dynamically
+  useEffect(() => {
+    const fetchClassDetails = async () => {
+      try {
+        const response = await axios.get(`http://localhost:5001/classes/${id}`);
+        setSelectedClass(response.data);
+      } catch (err) {
+        setError("Class not found.");
+      }
+    };
 
-  const selectedClass = classes.find((classItem) => classItem.id === id);
+    fetchClassDetails();
+  }, [id]);
+
+  // Fetch files when the selected class changes
+  const fetchFiles = () => {
+    if (selectedClass) {
+      setIsLoading(true);
+      axios
+        .get(`http://localhost:5000/preview?subject=${selectedClass.class.title}`)
+        .then((response) => {
+          setFiles(response.data.files || []);
+          setError(null);
+        })
+        .catch((err) => setError(err.message))
+        .finally(() => setIsLoading(false));
+    }
+  };
+
+  const handleDeleteFile = async (fileName) => {
+    try {
+      await axios.delete(`http://localhost:5000/delete`, {
+        data: { fileName, subject: selectedClass.class.title },
+      });
+      alert(`${fileName} deleted successfully.`);
+      fetchFiles(); 
+    } catch (error) {
+      console.error("Error deleting file:", error);
+      alert("Failed to delete file.");
+    }
+  };
 
   useEffect(() => {
     if (selectedClass) {
-      // Fetch files for the selected subject
-      axios
-        .get(`http://localhost:5000/preview?subject=${selectedClass.title}`)
-        .then((response) => setFiles(response.data.files || []))
-        .catch((err) => setError(err.message));
+      fetchFiles();
     }
   }, [selectedClass]);
 
-  if (!selectedClass) {
+  // Prevent rendering if class is not found
+  if (error) {
     return (
       <div className="class-details-container">
-        <h1>Class not found</h1>
+        <h1>{error}</h1>
         <button className="back-button" onClick={() => navigate(-1)}>
           Back
         </button>
       </div>
     );
+  }
+
+  if (!selectedClass) {
+    return <p>Loading...</p>;
   }
 
   return (
@@ -48,19 +84,29 @@ const ClassDetails = () => {
         <button className="back-button" onClick={() => navigate(-1)}>
           <GoArrowLeft />
         </button>
-        <h1 className="class-title">{selectedClass.title}</h1>
-        <p className="class-teacher">Taught by: {selectedClass.teacher}</p>
-        <p className="class-description">{selectedClass.description}</p>
-        {/* Pass title to FileUpload */}
-        <FileUpload subject={selectedClass.title} />
+        <h1 className="class-title">{selectedClass.class.title}</h1>
+        <p className="class-teacher">Taught by: {selectedClass.class.teacher}</p>
+        <p className="class-description">{selectedClass.class.description}</p>
+
+        <FileUpload subject={selectedClass.class.title} onFileUpload={fetchFiles} />
 
         <div className="file-preview">
           <h2>Preview Files</h2>
           {error && <p className="error">{error}</p>}
-          {files.length > 0 ? (
+          {isLoading ? (
+            <p>Loading files...</p>
+          ) : files.length > 0 ? (
             <ul>
               {files.map((file, index) => (
-                <li key={index}>{file}</li>
+                <li key={index}>
+                  {file}
+                  <button
+                    onClick={() => handleDeleteFile(file)}
+                    className="delete-button"
+                  >
+                    Delete
+                  </button>
+                </li>
               ))}
             </ul>
           ) : (
@@ -68,7 +114,7 @@ const ClassDetails = () => {
           )}
         </div>
       </div>
-      <Chatbot subject={selectedClass.title}/>
+      <Chatbot subject={selectedClass.title} />
     </div>
   );
 };
