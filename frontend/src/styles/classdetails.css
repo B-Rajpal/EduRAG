@@ -1,65 +1,134 @@
+/* Base container styling */
 .class-details-container {
-    /* font-family: Arial, sans-serif;
+    font-family: "Roboto", sans-serif;
     display: flex;
     flex-direction: column;
-    padding: 40px;
-    background-color: #f9f9f9;
-    border-radius: 10px;
-    width: 40%; 
-   
-    position: absolute;
-    top: 20%; 
-    left: 20%; 
-    transform: translate(-50%, -50%); 
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); */
-    position: fixed;
-  margin : 73 0 0 0%;
-  width: 72%;
-  height : 95%;
-  background-color: #f9f9f9;
-  border: 1px solid #ccc;
-  border-radius: 10px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  font-family: Arial, sans-serif;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  text-align: center;
-    
-}
-
-/* Button styling */
-.back-button {
+    margin: 73px 0 0 0;
+    width: 70%;
+    height: 100%;
+    /* background-color: #fff; */
+    border: 1px solid #e0e0e0;
+    border-radius: 15px;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    overflow-y: auto;
+    text-align: center;
+    transition: all 0.3s ease-in-out;
+  }
+  
+  .class-details-container:hover {
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+  }
+  
+  /* Button styling */
+  .back-button {
     background-color: #1a73e8;
-    margin : 2% 2% 0 2%;
     color: white;
     border: none;
-    padding: 10px 20px;
+    padding: 12px 20px;
     border-radius: 5px;
     cursor: pointer;
     font-size: 16px;
-    margin-bottom: 20px;
-    align-self: flex-start; 
-    /* Align button to the left */
-}
-
-.back-button:hover {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    transition: background-color 0.3s ease;
+  }
+  
+  .back-button:hover {
     background-color: #1558c0;
-}
-
-/* Title styling */
-.class-title {
-    font-size: 28px;
-    font-weight: bold;
+  }
+  
+  /* Class info section */
+  .class-info {
+    margin-bottom: 40px;
+  }
+  
+  .class-title {
+    font-size: 32px;
+    font-weight: 600;
     color: #333;
-    margin-bottom: 20px;
-}
-
-/* Text styling */
-.class-teacher,
-.class-description {
+    margin-bottom: 15px;
+  }
+  
+  .class-teacher,
+  .class-description {
     font-size: 18px;
     color: #555;
+    line-height: 1.6;
     margin-bottom: 15px;
-    line-height: 1.6; /* Improve readability */
-}
+    
+  }
+  
+  
+  /* File preview section */
+  .file-preview {
+    margin-top: 30px;
+  }
+  
+  .file-preview h2 {
+    font-size: 24px;
+    font-weight: 500;
+    margin-bottom: 20px;
+  }
+  
+  .file-preview ul {
+    list-style-type: none;
+    padding: 0;
+  }
+  
+  .file-preview li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #f9f9f9;
+    padding: 12px 20px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+  
+  .delete-button {
+    background-color: #ff4d4f;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+  }
+  
+  .delete-button:hover {
+    background-color: #d4382e;
+  }
+  
+  /* Loading state */
+  .error {
+    color: #ff4d4f;
+    font-weight: 500;
+  }
+  
+  .loading {
+    font-size: 18px;
+    color: #999;
+  }
+  .delete-class-button {
+    position: absolute;
+        left: 20px; /* Distance from the left */
+    background-color: #dc3545;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+    z-index: 10; /* Ensure it stays above other elements */
+    transition: background-color 0.3s;
+  }
+  
+  .delete-class-button:hover {
+    background-color: #c82333;
+  }
+  
+  
