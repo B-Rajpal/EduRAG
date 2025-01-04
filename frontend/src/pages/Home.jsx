@@ -74,12 +74,10 @@ export const Home = () => {
   useEffect(() => {
     const fetchClasses = async () => {
       try {
-        const response = await axios.get("http://localhost:5001/classes"); // Change URL to match your backend endpoint
-        setClasses(response.data.classes); // Assuming the response data is an array of classes
-        console.log(response.data.classes);
+        const response = await axios.get("http://localhost:5001/classes");
+        setClasses(response.data.classes); 
       } catch (error) {
         setErrorMessage("Failed to fetch classes. Please try again.");
-        console.error("Error fetching classes:", error);
       }
     };
 
@@ -91,23 +89,22 @@ export const Home = () => {
   };
 
   const handleNavigation = () => {
-    navigate("/profile"); // Change "/profile" to your desired route
+    navigate("/profile");
   };
 
   const handleNavigation1 = () => {
-    navigate("/form"); // Change "/form" to your desired route for creating a class
+    navigate("/form");
   };
 
   return (
-    <div className="classroom-container">
-      <header className="classroom-header">
-        <h1>Google Classroom...</h1>
-        <div>
+    <div className="home-container">
+      <header className="home-header">
+        <h1 className="main-title">Google Classroom</h1>
+        <div className="header-actions">
           <button className="create-class-button" onClick={handleNavigation1}>
-            +Create Class
+            + Create Class
           </button>
-          &nbsp;&nbsp;
-          <FontAwesomeIcon icon={faUser} onClick={handleNavigation} />
+          <FontAwesomeIcon icon={faUser} onClick={handleNavigation} className="profile-icon" />
         </div>
       </header>
 
@@ -120,10 +117,11 @@ export const Home = () => {
               key={classItem.id}
               className="class-card"
               onClick={() => handleClassClick(classItem.id)}
-              style={{ cursor: "pointer" }}
-            >
-              <h2 className="class-title">{classItem.title}</h2>
-              <p className="class-teacher">Taught by: {classItem.teacher}</p>
+            ><img src="https://assets.entrepreneur.com/content/3x2/2000/20191219170611-GettyImages-1152794789.jpeg" alt="Book" />
+              <div className="class-card-header">
+                <h2 className="class-title">{classItem.title}</h2>
+                <p className="class-teacher">Taught by: {classItem.teacher}</p>
+              </div>
               <p className="class-description">{classItem.description}</p>
               <button className="view-class-button">View Class</button>
             </div>
@@ -135,4 +133,3 @@ export const Home = () => {
     </div>
   );
 };
-
