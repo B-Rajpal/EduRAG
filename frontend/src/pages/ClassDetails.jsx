@@ -125,6 +125,7 @@ const ClassDetails = () => {
  
       <Chatbot subject={selectedClass.class.title} />
     </div>
+    </div>
   );
   };
 
