@@ -9,8 +9,8 @@ CORS(app)
 # MySQL Database Configuration
 DB_HOST = "localhost"
 DB_USER = "root"
-DB_PASSWORD = "root123"  # Replace with your MySQL root password
-DB_NAME = "user"
+DB_PASSWORD = "Pr@040903"  # Replace with your MySQL root password
+DB_NAME = "users"
 
 # Connect to the MySQL database
 def get_db_connection():
@@ -204,10 +204,32 @@ def get_class_by_id(class_id):
         print(f"Error fetching class by ID: {e}")  # Log the error
         return jsonify({"error": "Internal server error"}), 500
 
-@app.route("/makedir", methods=["POST"])
-def make_directory():
-     os.makedirs(subject_path, exist_ok=True)
 
+@app.route('/classes/<int:class_id>', methods=['DELETE'])
+def delete_class(class_id):
+    """Endpoint to delete a class by its ID."""
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cursor:
+            # Check if the class exists
+            cursor.execute("SELECT * FROM classes WHERE id = %s", (class_id,))
+            class_data = cursor.fetchone()
+
+            if not class_data:
+                return jsonify({"error": "Class not found"}), 404
+
+            # Delete the class
+            cursor.execute("DELETE FROM classes WHERE id = %s", (class_id,))
+            conn.commit()
+
+        return jsonify({"message": "Class deleted successfully"}), 200
+
+    except Exception as e:
+        print(f"Error deleting class: {e}")  # Log the error
+        return jsonify({"error": "Internal server error"}), 500
+
+    finally:
+        conn.close()
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001)
