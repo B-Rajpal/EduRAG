@@ -24,23 +24,36 @@ const CreateClass = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
-    // Include createdBy in the request payload
-    const dataToSend = { ...formData, createdBy };
-
+  
+    // Create a directory for the new subject
     axios
-      .post("http://localhost:5001/classes", dataToSend)
-      .then((response) => {
-        setSuccessMessage("Class created successfully!");
-        setErrorMessage("");
-        setFormData({ title: "", teacher: "", description: "" }); // Reset the form
+      .get("http://localhost:5000/makedir", {
+        params: { subject: formData.title }, // Correctly pass parameters in GET request
+      })
+      .then(() => {
+        // Proceed to create the class
+        const dataToSend = { ...formData, createdBy };
+  
+        axios
+          .post("http://localhost:5001/classes", dataToSend)
+          .then((response) => {
+            setSuccessMessage("Class created successfully!");
+            setErrorMessage("");
+            setFormData({ title: "", teacher: "", description: "" }); // Reset the form
+          })
+          .catch((error) => {
+            const errorMsg = error.response?.data?.error || "Failed to create the class. Please try again.";
+            setErrorMessage(errorMsg);
+            setSuccessMessage("");
+          });
       })
       .catch((error) => {
-        const errorMsg = error.response?.data?.error || "Failed to create the class. Please try again.";
+        const errorMsg = error.response?.data?.error || "Failed to create the directory for the subject.";
         setErrorMessage(errorMsg);
         setSuccessMessage("");
       });
   };
+  
 
   return (
     <div className="create-class-container">

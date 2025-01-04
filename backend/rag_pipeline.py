@@ -214,6 +214,17 @@ def rag_pipeline():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route("/makedir", methods=["GET"])
+def make_directory():
+    try:
+        subject = request.args.get("subject")
+        if not subject:
+            return jsonify({"error": "Subject is required"}), 400
+        subject_path = os.path.join(UPLOAD_FOLDER, subject)
+        os.makedirs(subject_path, exist_ok=True)
+        return jsonify({"message": f"Directory '{subject}' created successfully."}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == '__main__':

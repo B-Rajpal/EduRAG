@@ -15,7 +15,7 @@ const Chatbot = ({ subject }) => {
 
   const handleStart = async () => {
     setLoadingScreen(true); // Show loading screen
-    const files = ["E:\\final year project\\EduRAG\\backend\\example1.pdf"];
+    const files = ["E:\\Finalyear_project\\EduRAG\\backend\\example1.pdf"];
     setStart(false);
     setError(false);  // Reset error state before trying to start
 

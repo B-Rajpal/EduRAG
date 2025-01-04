@@ -99,8 +99,7 @@ const ClassDetails = () => {
         <h1 className="class-title">{selectedClass.class.title}</h1>
         <p className="class-teacher">Taught by: {selectedClass.class.teacher}</p>
         <p className="class-description">{selectedClass.class.description}</p>
-      </div>
-  
+
       <FileUpload subject={selectedClass.class.title} onFileUpload={fetchFiles} />
   
       <div className="file-preview">
@@ -123,7 +122,7 @@ const ClassDetails = () => {
           <p>No files available for this subject.</p>
         )}
       </div>
-  
+ 
       <Chatbot subject={selectedClass.class.title} />
     </div>
   );
