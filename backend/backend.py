@@ -9,8 +9,7 @@ CORS(app)
 # MySQL Database Configuration
 DB_HOST = "localhost"
 DB_USER = "root"
-DB_PASSWORD = "root123"  # Replace with your MySQL root password
-
+DB_PASSWORD = "Rajpal@1704"  # Replace with your MySQL root password
 DB_NAME = "users"
 
 # Connect to the MySQL database
