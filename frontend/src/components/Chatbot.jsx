@@ -158,6 +158,7 @@ const Chatbot = ({ subject }) => {
               maxWidth: "70%", // Adjust max width for chat bubbles
               wordWrap: "break-word",
             }}
+            className="div1"
           >
             <strong>{chat.role}:</strong>
             {chat.isHtml ? (
@@ -165,6 +166,7 @@ const Chatbot = ({ subject }) => {
             ) : (
               chat.message
             )}
+            <br/>
           </div>
         ))}
         <div ref={chatEndRef}></div>
