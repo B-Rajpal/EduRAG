@@ -12,7 +12,8 @@ from langchain.embeddings import HuggingFaceEmbeddings
 import ollama
 from langchain.llms.base import LLM
 import markdown
-from files import preview_subject_files  # Import the function
+from sklearn.manifold import TSNE
+import numpy as np
 
 # Flask app setup
 app = Flask(__name__)
@@ -25,6 +26,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 # Global variables to hold processed data
 ollama_llm = None
 vector_stores = {}
+chunked_data = {}
 
 # Define a custom LLM wrapper for Ollama to integrate with LangChain
 class OllamaLLM(LLM, BaseModel):
@@ -109,10 +111,9 @@ def delete_file():
             return jsonify({"error": str(e)}), 500
     else:
         return jsonify({"error": f"File '{file_name}' not found."}), 404
-
 @app.route('/chunk', methods=['POST'])
 def chunk_files():
-    """Endpoint to process multiple uploaded files into chunks."""
+    """Endpoint to process multiple uploaded files into chunks and return embeddings for t-SNE."""
     data = request.get_json()
     file_paths = data.get("filePaths")
     subject = data.get("subject")
@@ -129,6 +130,9 @@ def chunk_files():
     try:
         embedding_model = HuggingFaceEmbeddings(model_name='all-MiniLM-L6-v2')
         vector_store = None
+        chunk_embeddings = []
+        chunk_texts = []
+        
         # Process each file
         for file_path in file_paths:
             if os.path.exists(file_path):
@@ -139,18 +143,63 @@ def chunk_files():
                 texts = token_splitter.split_documents(documents)
 
                 vector_store = FAISS.from_documents(texts, embedding=embedding_model)
+
+                for text in texts:
+                    chunk_texts.append(text.page_content)
+                    embedding = embedding_model.embed_documents([text.page_content])[0]
+                    chunk_embeddings.append(embedding)
             else:
                 return jsonify({"error": f"File not found: {file_path}"}), 400
 
         # Save the vector store
         vector_store.save_local(vector_store_file)
         vector_stores[subject] = vector_store  # Cache the vector store in memory
+        chunked_data[subject] = {
+            "texts": chunk_texts,
+            "embeddings": chunk_embeddings,
+        }
 
-        return jsonify({"message": "Files processed and vector store updated successfully"}), 200
+        return jsonify({
+            "message": "Files processed and vector store updated successfully",
+            "data": {
+                "texts": chunk_texts,
+                "embeddings": chunk_embeddings,
+            }
+        }), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/tsne', methods=['POST'])
+def tsne_visualization():
+    """Endpoint to generate t-SNE embeddings for visualization."""
+    data = request.get_json()
+    subject = data.get("subject")
 
+    if not subject:
+        return jsonify({"error": "Subject is required"}), 400
+    if subject not in chunked_data:
+        return jsonify({"error": f"No chunked data available for subject '{subject}'"}), 404
+
+    try:
+        embeddings = np.array(chunked_data[subject]["embeddings"])
+        if embeddings.ndim != 2:
+            return jsonify({"error": "Embeddings should be a 2D array."}), 400
+
+        texts = chunked_data[subject]["texts"]
+
+        # Perform t-SNE
+        tsne = TSNE(n_components=2, random_state=42)
+        tsne_results = tsne.fit_transform(embeddings)
+
+        tsne_data = [
+            {"x": float(coord[0]), "y": float(coord[1]), "text": text}
+            for coord, text in zip(tsne_results, texts)
+        ]
+
+        return jsonify({"data": tsne_data}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
 @app.route('/preview', methods=['GET'])
 def preview_files():
     """Endpoint to preview files for a given subject."""
@@ -172,7 +221,7 @@ def preview_files():
 
 @app.route('/rag', methods=['POST'])
 def rag_pipeline():
-    """Endpoint to handle the RAG pipeline for queries."""
+    """Endpoint to handle the RAG pipeline for queries and return query point."""
     data = request.get_json()
     query = data.get("query")
     subject = data.get("subject")
@@ -197,6 +246,10 @@ def rag_pipeline():
             vector_store = FAISS.load_local(vector_store_file, embedding_model)
             vector_stores[subject] = vector_store
 
+        # Generate embedding for the query
+        embedding_model = HuggingFaceEmbeddings(model_name='all-MiniLM-L6-v2')
+        query_embedding = embedding_model.embed_documents([query])[0]
+
         # Define the RetrievalQA chain
         qa = RetrievalQA.from_chain_type(
             llm=ollama_llm,
@@ -209,7 +262,11 @@ def rag_pipeline():
         result = qa({"query": query})
         answer = result['result']
 
-        return jsonify({"answer": markdown.markdown(answer)}), 200
+        # Return the answer along with the query point embedding
+        return jsonify({
+            "answer": markdown.markdown(answer),
+            "query_point": query_embedding # Convert NumPy array to list for JSON serialization
+        }), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500

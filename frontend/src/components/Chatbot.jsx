@@ -4,20 +4,20 @@ import axios from "axios";
 import { FaPaperPlane } from "react-icons/fa";
 import Loader from "./Loader";
 
-const Chatbot = ({ subject }) => {
+const Chatbot = ({ subject, onQuerySubmit }) => { // Add onQuerySubmit as a prop
   const [input, setInput] = useState(""); // For user input
   const [chatHistory, setChatHistory] = useState([]); // To store chat history
   const [loadingScreen, setLoadingScreen] = useState(false); // State for loading overlay
-  const [start, setStart] = useState(true);  
-  const [error, setError] = useState(false);  
+  const [start, setStart] = useState(true);
+  const [error, setError] = useState(false);
   const chatEndRef = useRef(null);
-  const inputRef = useRef(null); 
+  const inputRef = useRef(null);
 
   const handleStart = async () => {
     setLoadingScreen(true); // Show loading screen
-    const files = ["E:\\Finalyear_project\\EduRAG\\backend\\example1.pdf"];
+    const files = ["D:\\Rajpal\\EduRAG\\backend\\example1.pdf"];
     setStart(false);
-    setError(false);  // Reset error state before trying to start
+    setError(false); // Reset error state before trying to start
 
     try {
       // Initialize the model
@@ -81,6 +81,12 @@ const Chatbot = ({ subject }) => {
       };
 
       setChatHistory((prev) => [...prev, botResponse]);
+
+      // Send query to ClassDetails for visualization
+      if (onQuerySubmit) {
+        const queryPoint = response.data.query_point; // Assuming query_point is in the response
+        onQuerySubmit(queryPoint); // Send the query point for visualization
+      }
     } catch (error) {
       console.error("Error:", error.response?.data || error.message);
       setError(true); // Set error state when there is an error
@@ -167,7 +173,7 @@ const Chatbot = ({ subject }) => {
             ) : (
               chat.message
             )}
-            <br/>
+            <br />
           </div>
         ))}
         <div ref={chatEndRef}></div>
@@ -178,8 +184,9 @@ const Chatbot = ({ subject }) => {
         <button onClick={handleStart} className="startchat" disabled={loadingScreen}>
           Start
         </button>
-      ) : !error &&(
-        <div className="inputbox">
+      ) : (
+        !error && (
+          <div className="inputbox">
             <textarea
               ref={inputRef}
               value={input}
@@ -198,17 +205,16 @@ const Chatbot = ({ subject }) => {
               }}
               disabled={loadingScreen} // Disable the textarea when loading
             ></textarea>
-          
-       
-          <FaPaperPlane
-            className="send-icon"
-            onClick={handleSend}
-            disabled={loadingScreen || error} // Disable the send button if there's an error
-          />
-        </div>
+
+            <FaPaperPlane
+              className="send-icon"
+              onClick={handleSend}
+              disabled={loadingScreen || error} // Disable the send button if there's an error
+            />
+          </div>
+        )
       )}
     </div>
-          
   );
 };
 
