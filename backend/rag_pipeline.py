@@ -226,6 +226,63 @@ def make_directory():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/generate_quiz', methods=['POST'])
+def generate_quiz():
+    """Endpoint to generate a quiz based on the subject."""
+    data = request.get_json()
+    subject = data.get("subject")
+    num_questions = data.get("num_questions", 5)  # Default to 5 questions
+
+    if not subject:
+        return jsonify({"error": "Subject is required"}), 400
+
+    try:
+        # Check if the model is initialized, if not, initialize it
+        if ollama_llm is None:
+            return jsonify({"error": "Ollama model is not initialized. Please initialize the model first."}), 400
+
+        # Load the vector store for the given subject
+        subject_folder = os.path.join(UPLOAD_FOLDER, subject)
+        vector_store_file = os.path.join(subject_folder, "vector_store")
+        
+        if not os.path.exists(vector_store_file):
+            return jsonify({"error": f"No data available for the subject '{subject}'."}), 400
+        
+        embedding_model = HuggingFaceEmbeddings(model_name='all-MiniLM-L6-v2')
+        
+        # Load the vector store with allow_dangerous_deserialization set to True
+        vector_store = FAISS.load_local(vector_store_file, embedding_model, allow_dangerous_deserialization=True)
+
+        quiz = []
+        for _ in range(num_questions):
+            # Retrieve a relevant chunk of text
+            retriever = vector_store.as_retriever(search_kwargs={"k": 1})  # You can adjust 'k' to fetch more context
+            result = retriever.get_relevant_documents("")  # Empty query for general context
+            
+            # Select the most relevant chunk of text
+            context = result[0].page_content if result else "No relevant content found."
+
+            # Generate a question based on the context
+            question_prompt = f"Generate a multiple-choice question based on the following content: {context}"
+            question = ollama_llm._call(question_prompt)  # Use Ollama or any language model to generate the question
+
+            # Generate options for the multiple-choice question
+            options = ["Option 1", "Option 2", "Option 3", "Option 4"]  # Placeholder for options (can be improved)
+            correct_answer = options[0]  # Placeholder for the correct answer
+
+            quiz.append({
+                "question": question,
+                "options": options,
+                "correct_answer": correct_answer
+            })
+
+        # Log the generated quiz in the console for debugging purposes
+        print("Generated Quiz:", quiz)
+
+        return jsonify({"quiz": quiz}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
