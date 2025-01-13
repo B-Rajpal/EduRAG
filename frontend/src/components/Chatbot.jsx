@@ -91,13 +91,28 @@ const Chatbot = ({ subject }) => {
 
       <div className="chathistory">
         {chatHistory.map((chat, index) => (
-          <div key={index} className={`chat-bubble ${chat.role === "User" ? "user" : "bot"}`}>
+  <div
+            key={index}
+            style={{
+              textAlign: chat.role === "User" ? "right" : "left", // Align based on role
+              backgroundColor: chat.role === "User" ? "orange" : "yellow",
+              margin: "5px 0",
+              padding: "5px 10px",
+              borderRadius: "10px",
+              display: "inline-block",
+              maxWidth: "70%", // Adjust max width for chat bubbles
+              wordWrap: "break-word",
+            }}
+            className="div1"
+          >
+
             <strong>{chat.role}:</strong>
             {chat.isHtml ? (
               <div dangerouslySetInnerHTML={{ __html: chat.message }}></div>
             ) : (
               chat.message
             )}
+            <br/>
           </div>
         ))}
         <div ref={chatEndRef}></div>
