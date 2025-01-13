@@ -12,7 +12,6 @@ from langchain.embeddings import HuggingFaceEmbeddings
 import ollama
 from langchain.llms.base import LLM
 import markdown
-from files import preview_subject_files  # Import the function
 
 # Flask app setup
 app = Flask(__name__)
@@ -22,13 +21,13 @@ CORS(app)
 UPLOAD_FOLDER = 'uploads/'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# Global variables to hold processed data
+# Global variables
 ollama_llm = None
 vector_stores = {}
 
 # Define a custom LLM wrapper for Ollama to integrate with LangChain
 class OllamaLLM(LLM, BaseModel):
-    model_name: str  # Explicitly declare the model_name field
+    model_name: str
 
     def _call(self, prompt: str, stop=None):
         response = ollama.generate(model=self.model_name, prompt=prompt)
@@ -37,7 +36,6 @@ class OllamaLLM(LLM, BaseModel):
     @property
     def _llm_type(self):
         return "ollama"
-
 
 # Define the prompt template
 prompt_template = """Use the following pieces of context to answer the question at the end.
@@ -51,19 +49,16 @@ PROMPT = PromptTemplate(
     template=prompt_template, input_variables=["context", "question"]
 )
 
-
 @app.route('/initialize', methods=['POST'])
 def initialize_model():
     """Endpoint to initialize the Ollama model."""
     global ollama_llm
 
-    # Initialize the Ollama model if not already initialized
     if ollama_llm is None:
         ollama_llm = OllamaLLM(model_name="llama3.2")
         return jsonify({"message": "Model initialized successfully"}), 200
     else:
         return jsonify({"message": "Model already initialized"}), 200
-
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
@@ -76,8 +71,7 @@ def upload_file():
 
     if file.filename == '':
         return jsonify({"error": "No selected file"}), 400
-    
-    
+
     subject_path = os.path.join(UPLOAD_FOLDER, subject)
     os.makedirs(subject_path, exist_ok=True)  # Ensure the directory is created
 
@@ -109,7 +103,6 @@ def delete_file():
             return jsonify({"error": str(e)}), 500
     else:
         return jsonify({"error": f"File '{file_name}' not found."}), 404
-
 @app.route('/chunk', methods=['POST'])
 def chunk_files():
     """Endpoint to process multiple uploaded files into chunks."""
@@ -128,7 +121,8 @@ def chunk_files():
 
     try:
         embedding_model = HuggingFaceEmbeddings(model_name='all-MiniLM-L6-v2')
-        vector_store = None
+        all_texts = []
+
         # Process each file
         for file_path in file_paths:
             if os.path.exists(file_path):
@@ -138,18 +132,20 @@ def chunk_files():
                 token_splitter = TokenTextSplitter(chunk_size=500, chunk_overlap=50)
                 texts = token_splitter.split_documents(documents)
 
-                vector_store = FAISS.from_documents(texts, embedding=embedding_model)
+                all_texts.extend(texts)  # Collect all texts
             else:
                 return jsonify({"error": f"File not found: {file_path}"}), 400
+
+        # Create the vector store from all combined texts
+        vector_store = FAISS.from_documents(all_texts, embedding=embedding_model)
 
         # Save the vector store
         vector_store.save_local(vector_store_file)
         vector_stores[subject] = vector_store  # Cache the vector store in memory
 
-        return jsonify({"message": "Files processed and vector store updated successfully"}), 200
+        return jsonify({"message": "All files processed and vector store updated successfully"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 
 @app.route('/preview', methods=['GET'])
 def preview_files():
@@ -168,11 +164,11 @@ def preview_files():
         return jsonify({"subject": subject, "files": files}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-
 @app.route('/rag', methods=['POST'])
 def rag_pipeline():
     """Endpoint to handle the RAG pipeline for queries."""
+    global ollama_llm
+
     data = request.get_json()
     query = data.get("query")
     subject = data.get("subject")
@@ -183,19 +179,27 @@ def rag_pipeline():
         return jsonify({"error": "Subject is required"}), 400
 
     try:
-        # Use the cached vector store if available
-        if subject in vector_stores:
-            vector_store = vector_stores[subject]
-        else:
-            # Reload from disk if not in memory
-            subject_folder = os.path.join(UPLOAD_FOLDER, subject)
-            vector_store_file = os.path.join(subject_folder, "vector_store")
-            if not os.path.exists(vector_store_file):
-                return jsonify({"error": f"No data available for the subject '{subject}'."}), 400
+        # Ensure the Ollama LLM is initialized
+        if ollama_llm is None:
+            ollama_llm = OllamaLLM(model_name="llama3.2")
 
-            embedding_model = HuggingFaceEmbeddings(model_name='all-MiniLM-L6-v2')
-            vector_store = FAISS.load_local(vector_store_file, embedding_model)
-            vector_stores[subject] = vector_store
+        # Path to the vector store file
+        subject_folder = os.path.join(UPLOAD_FOLDER, subject)
+        vector_store_file = os.path.join(subject_folder, "vector_store")
+
+        # Check if the vector store file exists
+        if not os.path.exists(vector_store_file):
+            return jsonify({"error": f"Vector store for '{subject}' not found."}), 404
+
+        # Perform safe deserialization for trusted files
+        embedding_model = HuggingFaceEmbeddings(model_name='all-MiniLM-L6-v2')
+        try:
+            vector_store = FAISS.load_local(vector_store_file, embedding_model, allow_dangerous_deserialization=True)
+        except Exception as e:
+            return jsonify({"error": f"Failed to load vector store: {str(e)}"}), 500
+
+        # Cache the vector store in memory
+        vector_stores[subject] = vector_store
 
         # Define the RetrievalQA chain
         qa = RetrievalQA.from_chain_type(
@@ -225,7 +229,6 @@ def make_directory():
         return jsonify({"message": f"Directory '{subject}' created successfully."}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
