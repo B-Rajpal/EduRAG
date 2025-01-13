@@ -5,149 +5,93 @@ import { FaPaperPlane } from "react-icons/fa";
 import Loader from "./Loader";
 
 const Chatbot = ({ subject }) => {
-  const [input, setInput] = useState(""); // For user input
-  const [chatHistory, setChatHistory] = useState([]); // To store chat history
-  const [loadingScreen, setLoadingScreen] = useState(false); // State for loading overlay
-  const [start, setStart] = useState(true);  
-  const [error, setError] = useState(false);  
+  const [input, setInput] = useState("");
+  const [chatHistory, setChatHistory] = useState([]);
+  const [loadingScreen, setLoadingScreen] = useState(false);
+  const [start, setStart] = useState(true);
+  const [error, setError] = useState(null);
+  const [uploadedfiles, setUploadedfiles] = useState([]);
   const chatEndRef = useRef(null);
-  const inputRef = useRef(null); 
+  const inputRef = useRef(null);
+
+  const fetchFiles = () => {
+    if (subject) {
+      axios
+        .get(`http://localhost:5000/preview?subject=${subject}`)
+        .then((response) => {
+          const filteredFiles = (response.data.files || []).filter((file) => file !== "vector");
+          setUploadedfiles(filteredFiles);
+        })
+        .catch((err) => setError(`Error fetching files: ${err.message}`));
+    }
+  };
+
+  useEffect(() => {
+    fetchFiles();
+  }, [subject]);
 
   const handleStart = async () => {
-    setLoadingScreen(true); // Show loading screen
-    const files = ["E:\\Finalyear_project\\EduRAG\\backend\\example1.pdf"];
-    setStart(false);
-    setError(false);  // Reset error state before trying to start
+    if (!uploadedfiles.length) {
+      setError("No files available to process.");
+      return;
+    }
 
+    setLoadingScreen(true);
     try {
-      // Initialize the model
-      const modelResponse = await axios.post(
-        "http://localhost:5000/initialize",
-        {},
-        { headers: { "Content-Type": "application/json" } }
+      const selectedFiles = uploadedfiles.map(
+        (file) => `E:\\Finalyear_project\\EduRAG\\backend\\${file}`
       );
-      console.log("Model initialization response:", modelResponse.data);
-      // Chunk the files and initialize the model
-      const chunkResponse = await axios.post(
-        "http://localhost:5000/chunk",
-        {
-          filePaths: files,
-          subject: subject, // Specify a default subject or make this dynamic
-        },
-        { headers: { "Content-Type": "application/json" } }
-      );
-      console.log("Chunk response:", chunkResponse.data);
-    } catch (error) {
-      console.error("Error:", error.response?.data || error.message);
-      setError(true); // Set error state when there is an error
-      setChatHistory((prev) => [
-        ...prev,
-        {
-          role: "Bot",
-          message: "There was an error starting the chat. Please try again.",
-        },
-      ]);
+      console.log("Processing files:", selectedFiles);
+      setStart(false);
+      setError(null);
+    } catch (err) {
+      setError("An error occurred while starting the process.");
+      console.error(err);
     } finally {
-      setLoadingScreen(false); // Hide loading screen
+      setLoadingScreen(false);
     }
   };
 
   const handleSend = async () => {
     if (!input.trim()) return;
 
-    const userMessage = { role: "User", message: input };
-    setChatHistory((prev) => [...prev, userMessage]); // Add user message
-    setInput(""); // Clear input
-    const textarea = inputRef.current;
-    if (textarea) {
-      textarea.style.height = "auto"; // Reset to original size
-    }
-    setLoadingScreen(true); // Show loading screen
-    setError(false); // Reset error state before sending
+    setChatHistory((prev) => [...prev, { role: "User", message: input }]);
+    setInput("");
+    setLoadingScreen(true);
 
     try {
-      // Call RAG pipeline
       const response = await axios.post(
         "http://localhost:5000/rag",
-        { query: input, subject: subject }, // Use the same subject as in handleStart
+        { query: input, subject },
         { headers: { "Content-Type": "application/json" } }
       );
-      console.log("RAG response:", response.data);
 
-      const botResponse = {
-        role: "Bot",
-        message: response.data.answer || "No response received.",
-        isHtml: true, // Mark as HTML content
-      };
-
-      setChatHistory((prev) => [...prev, botResponse]);
-    } catch (error) {
-      console.error("Error:", error.response?.data || error.message);
-      setError(true); // Set error state when there is an error
       setChatHistory((prev) => [
         ...prev,
-        {
-          role: "Bot",
-          message: "There was an error processing your request. Please try again.",
-        },
+        { role: "Bot", message: response.data.answer || "No response received.", isHtml: true },
+      ]);
+    } catch (err) {
+      setError("Error processing your request.");
+      setChatHistory((prev) => [
+        ...prev,
+        { role: "Bot", message: "There was an error. Please try again." },
       ]);
     } finally {
-      setLoadingScreen(false); // Hide loading screen
+      setLoadingScreen(false);
     }
   };
 
-  // Scroll to the bottom whenever the chatHistory changes
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatHistory]);
 
-  // Handle "Enter" key for sending messages
-  const handleKeyPress = (event) => {
-    if (event.key === "Enter" && !event.shiftKey && input.trim()) {
-      event.preventDefault();
-      handleSend();
-    }
-  };
-
-  const handleInputChange = (e) => {
-    setInput(e.target.value);
-    adjustTextareaHeight();
-  };
-
-  const adjustTextareaHeight = () => {
-    const textarea = inputRef.current;
-    if (textarea) {
-      const lineHeight = parseInt(getComputedStyle(textarea).lineHeight, 10); // Get line-height in pixels
-      const maxLines = 5; // Maximum number of lines before enabling scroll
-      const maxHeight = lineHeight * maxLines;
-
-      // Reset height to auto to shrink the height on delete
-      textarea.style.height = "auto";
-
-      // Adjust height based on scrollHeight
-      if (textarea.scrollHeight > maxHeight) {
-        textarea.style.height = `${maxHeight}px`;
-        textarea.style.overflowY = "scroll"; // Enable scroll when exceeding 3 lines
-      } else {
-        textarea.style.height = `${textarea.scrollHeight}px`;
-        textarea.style.overflowY = "hidden"; // Hide scroll otherwise
-      }
-    }
-  };
-
   return (
     <div className="chatbox">
-      <div className="chathistory">
-        {/* Semi-transparent overlay when loading */}
-        {loadingScreen && (
-          <div className="loading-overlay">
-            <Loader />
-          </div>
-        )}
+      {loadingScreen && <div className="loading-overlay"><Loader /></div>}
 
-        {/* Chat messages */}
+      <div className="chathistory">
         {chatHistory.map((chat, index) => (
-          <div
+  <div
             key={index}
             style={{
               textAlign: chat.role === "User" ? "right" : "left", // Align based on role
@@ -161,6 +105,7 @@ const Chatbot = ({ subject }) => {
             }}
             className="div1"
           >
+
             <strong>{chat.role}:</strong>
             {chat.isHtml ? (
               <div dangerouslySetInnerHTML={{ __html: chat.message }}></div>
@@ -173,42 +118,25 @@ const Chatbot = ({ subject }) => {
         <div ref={chatEndRef}></div>
       </div>
 
-      {/* Start button or input area */}
       {start && !error ? (
-        <button onClick={handleStart} className="startchat" disabled={loadingScreen}>
-          Start
-        </button>
-      ) : !error &&(
+        <button onClick={handleStart} disabled={loadingScreen}>Start</button>
+      ) : (
         <div className="inputbox">
-            <textarea
-              ref={inputRef}
-              value={input}
-              onChange={handleInputChange}
-              onKeyDown={handleKeyPress}
-              placeholder="Type your question..."
-              rows="1"
-              style={{
-                resize: "none",
-                width: "100%",
-                padding: "10px",
-                fontSize: "16px",
-                borderRadius: "5px",
-                border: "1px solid #ccc",
-                lineHeight: "24px", // Set a fixed line height (e.g., 24px)
-              }}
-              disabled={loadingScreen} // Disable the textarea when loading
-            ></textarea>
-          
-       
-          <FaPaperPlane
-            className="send-icon"
-            onClick={handleSend}
-            disabled={loadingScreen || error} // Disable the send button if there's an error
-          />
+          <textarea
+            ref={inputRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
+            placeholder="Type your question..."
+            rows="1"
+            disabled={loadingScreen}
+          ></textarea>
+          <FaPaperPlane onClick={handleSend} disabled={loadingScreen || error} />
         </div>
       )}
+
+      {error && <p className="error-message">{error}</p>}
     </div>
-          
   );
 };
 
