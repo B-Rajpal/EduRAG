@@ -35,24 +35,56 @@ const Chatbot = ({ subject }) => {
       setError("No files available to process.");
       return;
     }
-
+  
     setLoadingScreen(true);
+  
     try {
-      const selectedFiles = uploadedfiles.map(
-        (file) => `E:\\Finalyear_project\\EduRAG\\backend\\${file}`
+      // Step 1: Prepare file paths dynamically based on subject
+      const selectedFiles = uploadedfiles.filter((file) => file.endsWith(".pdf")).map(
+        (file) => `E:\\FINAL YEAR PROJECT\\EduRAG\\backend\\uploads\\${subject}\\${file}`
       );
       console.log("Processing files:", selectedFiles);
+  
+      // Step 2: Call the chunk endpoint
+      const chunkResponse = await axios.post(
+        'http://localhost:5000/chunk',
+        {
+          filePaths: selectedFiles, // Pass the array of file paths
+          subject: subject,         // Pass the selected subject
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json', // Explicitly set content type
+          },
+        }
+      );
+  
+      console.log("Chunk response:", chunkResponse.data);
+  
+      // Step 3: Initialize the model
+      const modelResponse = await axios.post(
+        'http://localhost:5000/initialize',
+        {},
+        {
+          headers: {
+            'Content-Type': 'application/json', // Explicitly set content type
+          },
+        }
+      );
+  
+      console.log("Model initialization response:", modelResponse.data);
+  
       setStart(false);
       setError(null);
-    } catch (err) {
-      setError("An error occurred while starting the process.");
-      console.error(err);
+    } catch (error) {
+      console.error("Error:", error.response?.data || error.message);
+      setError("An error occurred during the process. Please try again.");
     } finally {
       setLoadingScreen(false);
     }
   };
-
-  const handleSend = async () => {
+  
+    const handleSend = async () => {
     if (!input.trim()) return;
 
     setChatHistory((prev) => [...prev, { role: "User", message: input }]);

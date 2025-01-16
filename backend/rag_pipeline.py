@@ -126,44 +126,59 @@ def chunk_files():
         # Process each file
         for file_path in file_paths:
             if os.path.exists(file_path):
+                print(f"Processing file: {file_path}")
                 loader = PyPDFLoader(file_path)
                 documents = loader.load()
+                print(f"Loaded {len(documents)} documents from {file_path}.")
 
                 token_splitter = TokenTextSplitter(chunk_size=500, chunk_overlap=50)
                 texts = token_splitter.split_documents(documents)
-
+                print(f"Split into {len(texts)} chunks.")
                 all_texts.extend(texts)  # Collect all texts
             else:
+                print(f"File not found: {file_path}")
                 return jsonify({"error": f"File not found: {file_path}"}), 400
 
         # Create the vector store from all combined texts
         vector_store = FAISS.from_documents(all_texts, embedding=embedding_model)
+        print("Vector store created successfully.")
 
         # Save the vector store
         vector_store.save_local(vector_store_file)
+        print(f"Vector store saved at {vector_store_file}.")
         vector_stores[subject] = vector_store  # Cache the vector store in memory
 
         return jsonify({"message": "All files processed and vector store updated successfully"}), 200
     except Exception as e:
+        print(f"Error: {e}")
         return jsonify({"error": str(e)}), 500
 
 @app.route('/preview', methods=['GET'])
 def preview_files():
-    """Endpoint to preview files for a given subject."""
+    """Endpoint to preview files for a given subject or all subjects."""
     subject = request.args.get("subject")
 
-    if not subject:
-        return jsonify({"error": "Subject is required"}), 400
-
-    subject_folder = os.path.join(UPLOAD_FOLDER, subject)
-    if not os.path.exists(subject_folder):
-        return jsonify({"error": f"Subject folder '{subject}' does not exist."}), 404
-
     try:
-        files = os.listdir(subject_folder)
-        return jsonify({"subject": subject, "files": files}), 200
+        if subject:  # If subject is provided, return files for that subject
+            subject_folder = os.path.join(UPLOAD_FOLDER, subject)
+            if not os.path.exists(subject_folder):
+                return jsonify({"error": f"Subject folder '{subject}' does not exist."}), 404
+
+            files = os.listdir(subject_folder)
+            return jsonify({"subject": subject, "files": files}), 200
+        else:  # If no subject is provided, return files from all subjects
+            all_files = []
+            for subject in os.listdir(UPLOAD_FOLDER):
+                subject_folder = os.path.join(UPLOAD_FOLDER, subject)
+                if os.path.isdir(subject_folder):
+                    files = os.listdir(subject_folder)
+                    all_files.append({"subject": subject, "files": files})
+
+            return jsonify({"files": all_files}), 200
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 @app.route('/rag', methods=['POST'])
 def rag_pipeline():
     """Endpoint to handle the RAG pipeline for queries."""
