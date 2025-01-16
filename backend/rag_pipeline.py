@@ -75,7 +75,7 @@ def upload_file():
     subject_path = os.path.join(UPLOAD_FOLDER, subject)
     os.makedirs(subject_path, exist_ok=True)  # Ensure the directory is created
 
-    file_path = os.path.join(subject_path, "uploaded_" + file.filename)
+    file_path = os.path.join(subject_path,  file.filename)
     file.save(file_path)
 
     return jsonify({"message": "File uploaded successfully", "filePath": file_path}), 200

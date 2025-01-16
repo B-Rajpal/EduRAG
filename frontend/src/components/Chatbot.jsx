@@ -14,6 +14,7 @@ const Chatbot = ({ subject }) => {
   const chatEndRef = useRef(null);
   const inputRef = useRef(null);
 
+  // Fetch the list of uploaded files
   const fetchFiles = () => {
     if (subject) {
       axios
@@ -26,54 +27,57 @@ const Chatbot = ({ subject }) => {
     }
   };
 
+  // Fetch files when the subject changes
   useEffect(() => {
     fetchFiles();
   }, [subject]);
 
+  // Callback for file upload success
+  
   const handleStart = async () => {
     if (!uploadedfiles.length) {
       setError("No files available to process.");
       return;
     }
-  
+
     setLoadingScreen(true);
-  
+
     try {
-      // Step 1: Prepare file paths dynamically based on subject
-      const selectedFiles = uploadedfiles.filter((file) => file.endsWith(".pdf")).map(
-        (file) => `E:\\FINAL YEAR PROJECT\\EduRAG\\backend\\uploads\\${subject}\\${file}`
-      );
+      // Prepare file paths dynamically based on the subject
+      const selectedFiles = uploadedfiles
+        .filter((file) => file.endsWith(".pdf"))
+        .map((file) => `E:\\FINAL YEAR PROJECT\\EduRAG\\backend\\uploads\\${subject}\\${file}`);
       console.log("Processing files:", selectedFiles);
-  
-      // Step 2: Call the chunk endpoint
+
+      // Call the chunk endpoint
       const chunkResponse = await axios.post(
-        'http://localhost:5000/chunk',
+        "http://localhost:5000/chunk",
         {
-          filePaths: selectedFiles, // Pass the array of file paths
-          subject: subject,         // Pass the selected subject
+          filePaths: selectedFiles,
+          subject: subject,
         },
         {
           headers: {
-            'Content-Type': 'application/json', // Explicitly set content type
+            "Content-Type": "application/json",
           },
         }
       );
-  
+
       console.log("Chunk response:", chunkResponse.data);
-  
-      // Step 3: Initialize the model
+
+      // Initialize the model
       const modelResponse = await axios.post(
-        'http://localhost:5000/initialize',
+        "http://localhost:5000/initialize",
         {},
         {
           headers: {
-            'Content-Type': 'application/json', // Explicitly set content type
+            "Content-Type": "application/json",
           },
         }
       );
-  
+
       console.log("Model initialization response:", modelResponse.data);
-  
+
       setStart(false);
       setError(null);
     } catch (error) {
@@ -83,8 +87,8 @@ const Chatbot = ({ subject }) => {
       setLoadingScreen(false);
     }
   };
-  
-    const handleSend = async () => {
+
+  const handleSend = async () => {
     if (!input.trim()) return;
 
     setChatHistory((prev) => [...prev, { role: "User", message: input }]);
@@ -113,6 +117,7 @@ const Chatbot = ({ subject }) => {
     }
   };
 
+  // Scroll to the end of the chat when the chat history updates
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatHistory]);
@@ -121,24 +126,23 @@ const Chatbot = ({ subject }) => {
     <div className="chatbox">
       {loadingScreen && <div className="loading-overlay"><Loader /></div>}
 
+      
       <div className="chathistory">
         {chatHistory.map((chat, index) => (
-  <div
+          <div
             key={index}
             style={{
-              textAlign: chat.role === "User" ? "right" : "left", // Align based on role
+              textAlign: chat.role === "User" ? "right" : "left",
               backgroundColor: chat.role === "User" ? "orange" : "yellow",
               margin: "5px 0",
               padding: "5px 10px",
               borderRadius: "10px",
               display: "inline-block",
-              maxWidth: "70%", // Adjust max width for chat bubbles
               wordWrap: "break-word",
             }}
             className="div1"
-          >
-
-            <strong>{chat.role}:</strong>
+                      >
+                                    <strong>{chat.role}:</strong>
             {chat.isHtml ? (
               <div dangerouslySetInnerHTML={{ __html: chat.message }}></div>
             ) : (

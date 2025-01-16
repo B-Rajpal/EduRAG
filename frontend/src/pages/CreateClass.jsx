@@ -1,19 +1,22 @@
 import React, { useState } from "react";
 import axios from "axios";
 import "../styles/createclass.css";
-
+import { useNavigate } from "react-router-dom";
 const CreateClass = () => {
   const [formData, setFormData] = useState({
     title: "",
     teacher: "",
     description: "",
+    totalHours: "",
+    numberOfAssessments: "",
+    assessments: [],
   });
+  const [newAssessment, setNewAssessment] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
-  // Example of getting the user ID for 'createdBy' (you might use a real authentication system)
-  const createdBy = 1; // This would be dynamically set based on the logged-in user
-
+  const createdBy = 1; // Replace with the logged-in user's ID
+  const navigate = useNavigate();
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prevData) => ({
@@ -22,38 +25,62 @@ const CreateClass = () => {
     }));
   };
 
+  const handleAddAssessment = () => {
+    if (newAssessment.trim() !== "") {
+      setFormData((prevData) => ({
+        ...prevData,
+        assessments: [...prevData.assessments, newAssessment],
+      }));
+      setNewAssessment("");
+    }
+  };
+
+  const handleRemoveAssessment = (index) => {
+    setFormData((prevData) => ({
+      ...prevData,
+      assessments: prevData.assessments.filter((_, i) => i !== index),
+    }));
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
-  
-    // Create a directory for the new subject
+
     axios
       .get("http://localhost:5000/makedir", {
-        params: { subject: formData.title }, // Correctly pass parameters in GET request
+        params: { subject: formData.title },
       })
       .then(() => {
-        // Proceed to create the class
         const dataToSend = { ...formData, createdBy };
-  
+
         axios
           .post("http://localhost:5001/classes", dataToSend)
-          .then((response) => {
+          .then(() => {
             setSuccessMessage("Class created successfully!");
             setErrorMessage("");
-            setFormData({ title: "", teacher: "", description: "" }); // Reset the form
+            setFormData({
+              title: "",
+              teacher: "",
+              description: "",
+              totalHours: "",
+              numberOfAssessments: "",
+              assessments: [],
+            });
+            navigate("/");
           })
           .catch((error) => {
-            const errorMsg = error.response?.data?.error || "Failed to create the class. Please try again.";
+            const errorMsg =
+              error.response?.data?.error || "Failed to create the class. Please try again.";
             setErrorMessage(errorMsg);
             setSuccessMessage("");
           });
       })
       .catch((error) => {
-        const errorMsg = error.response?.data?.error || "Failed to create the directory for the subject.";
+        const errorMsg =
+          error.response?.data?.error || "Failed to create the directory for the subject.";
         setErrorMessage(errorMsg);
         setSuccessMessage("");
       });
   };
-  
 
   return (
     <div className="create-class-container">
@@ -97,6 +124,63 @@ const CreateClass = () => {
             required
           ></textarea>
         </div>
+
+        <div className="form-group">
+          <label htmlFor="totalHours">Total Hours</label>
+          <input
+            type="number"
+            id="totalHours"
+            name="totalHours"
+            value={formData.totalHours}
+            onChange={handleChange}
+            placeholder="Enter total hours"
+            required
+          />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="numberOfAssessments">Number of Assessments</label>
+          <input
+            type="number"
+            id="numberOfAssessments"
+            name="numberOfAssessments"
+            value={formData.numberOfAssessments}
+            onChange={handleChange}
+            placeholder="Enter number of assessments"
+            required
+          />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="assessments">Add Assessments</label>
+          <input
+            type="text"
+            id="assessments"
+            name="assessments"
+            value={newAssessment}
+            onChange={(e) => setNewAssessment(e.target.value)}
+            placeholder="Enter assessment title"
+          />
+          <button type="button" onClick={handleAddAssessment}>
+            Add Assessment
+          </button>
+        </div>
+
+        {formData.assessments.length > 0 && (
+          <div className="assessments-list">
+            <h4>Assessments:</h4>
+            <ul>
+              {formData.assessments.map((assessment, index) => (
+                <li key={index}>
+                  {assessment}{" "}
+                  <button type="button" onClick={() => handleRemoveAssessment(index)}>
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <button type="submit" className="submit-button">
           Create Class

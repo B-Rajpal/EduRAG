@@ -65,8 +65,8 @@ const ClassDetails = () => {
   };
 
   useEffect(() => {
-    if (files) {
-      fetchFiles();
+    if (selectedClass) {
+      fetchFiles(); // Re-fetch files when selectedClass changes
     }
   }, [selectedClass]);
 
@@ -90,43 +90,45 @@ const ClassDetails = () => {
       <button className="back-button" onClick={() => navigate(-1)}>
         <GoArrowLeft />
       </button>
-  
+
       <button className="delete-class-button" onClick={handleDeleteClass}>
         Delete Class
       </button>
-  
+
       <div className="class-info">
         <h1 className="class-title">{selectedClass.class.title}</h1>
         <p className="class-teacher">Taught by: {selectedClass.class.teacher}</p>
         <p className="class-description">{selectedClass.class.description}</p>
 
-      <FileUpload subject={selectedClass.class.title} onFileUpload={fetchFiles} />
-  
-      <div className="file-preview">
-        <h2>Preview Files</h2>
-        {error && <p className="error">{error}</p>}
-        {isLoading ? (
-          <p>Loading files...</p>
-        ) : files.length > 0 ? (
-          <ul>
-            {files.map((file, index) => (
-              <li key={index}>
-                {file}
-                <button onClick={() => handleDeleteFile(file)} className="delete-button">
-                  Delete
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p>No files available for this subject.</p>
-        )}
+        {/* FileUpload component */}
+        <FileUpload subject={selectedClass.class.title} onFileUpload={fetchFiles} />
+
+        <div className="file-preview">
+          <h2>Preview Files</h2>
+          {error && <p className="error">{error}</p>}
+          {isLoading ? (
+            <p>Loading files...</p>
+          ) : files.length > 0 ? (
+            <ul>
+              {files.map((file, index) => (
+                <li key={index}>
+                  {file}
+                  <button onClick={() => handleDeleteFile(file)} className="delete-button">
+                    Delete
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>No files available for this subject.</p>
+          )}
+        </div>
       </div>
- 
+
+      {/* Chatbot component */}
       <Chatbot subject={selectedClass.class.title} />
     </div>
-    </div>
   );
-  };
+};
 
 export default ClassDetails;
