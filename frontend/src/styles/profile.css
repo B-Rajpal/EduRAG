@@ -1,49 +1,324 @@
-/* profile.css */
-
+/* Profile Container */
 .profile-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    background-color: #f4f4f9;
-    font-family: "Arial", sans-serif;
-    padding: 20px;
+  width: 90%;
+  margin: 50px auto;
+  background: linear-gradient(to bottom right, #ffffff, #f0f0f0);
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  animation: fadeIn 0.8s ease-in-out;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+}
+
+/* Fade-in Animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
   }
-  
-  .profile-card {
-    background: #ffffff;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    max-width: 500px;
-    width: 100%;
-    padding: 20px 30px;
-    text-align: center;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
-  
-  .profile-title {
-    font-size: 24px;
-    color: #333333;
-    margin-bottom: 20px;
-  }
-  
-  .profile-details p {
-    font-size: 16px;
-    color: #555555;
-    margin: 10px 0;
-  }
-  
-  .profile-details strong {
-    color: #333333;
-  }
-  
-  .error-message {
-    color: #d9534f;
-    font-size: 16px;
-    margin-top: 20px;
-  }
-  
-  .loading-message {
-    font-size: 18px;
-    color: #666666;
-  }
-  
+}
+
+/* Profile Header (Navigation section) */
+.profile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+/* Profile Actions */
+.profile-actions {
+  display: flex;
+  gap: 15px;
+}
+
+/* Back and Logout Buttons */
+.back-button, .logout-button {
+  display: inline-block;
+  padding: 10px 20px;
+  font-size: 16px;
+  color: #fff;
+  background-color: #e24a54;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.back-button:hover, .logout-button:hover {
+  background-color: #357ab8;
+}
+
+/* Profile Card Layout */
+.profile-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.profile-content {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  width: 100%;
+}
+
+.profile-details-section {
+  flex: 0 0 60%; /* Left section (profile details) takes 60% of the width */
+  padding: 20px;
+  background-color: #fff7e6; /* Light yellow background */
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.profile-files-section {
+  flex: 0 0 35%; /* Right section (files) takes 35% of the width */
+  padding: 20px;
+  background-color: #e6f7ff; /* Light blue background */
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Profile Title */
+.profile-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #4a90e2;
+  margin-bottom: 15px;
+}
+
+/* Profile Details */
+.profile-details {
+  font-size: 16px;
+  line-height: 1.6;
+  margin-top: 15px;
+}
+
+.profile-details p {
+  margin: 10px 0;
+}
+
+.profile-details strong {
+  color: #50c878;
+}
+
+/* Error and Loading Messages */
+.error-message {
+  font-size: 18px;
+  color: #e74c3c;
+  text-align: center;
+  margin-top: 20px;
+}
+
+.loading-message {
+  font-size: 18px;
+  color: #95a5a6;
+  text-align: center;
+  margin: 20px 0;
+}
+
+/* Profile Picture */
+.profile-picture {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #4a90e2;
+  background-image: url("https://static.vecteezy.com/system/resources/previews/005/544/718/non_2x/profile-icon-design-free-vector.jpg");
+  background-size: cover;
+  background-position: center;
+  display: block;
+  margin: 0 auto 20px;
+}
+
+/* Edit Profile Form */
+.edit-profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  padding: 20px;
+  background: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  margin-top: 20px;
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+.edit-profile-form label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.edit-profile-form input {
+  width: 100%;
+  padding: 10px;
+  font-size: 14px;
+  color: #555;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  transition: border-color 0.3s ease;
+}
+
+.edit-profile-form input:focus {
+  border-color: #4a90e2;
+  outline: none;
+  box-shadow: 0 0 5px rgba(74, 144, 226, 0.5);
+}
+
+.edit-profile-form button {
+  width: 100%;
+  padding: 10px;
+  font-size: 16px;
+  color: #fff;
+  background-color: #4a90e2;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.edit-profile-form button:hover {
+  background-color: #357ab8;
+}
+
+/* Save Button */
+.edit-profile-form button[type="button"] {
+  margin-top: 10px;
+}
+
+.edit-profile-form button:nth-child(2) {
+  background-color: #e74c3c;
+}
+
+.edit-profile-form button:nth-child(2):hover {
+  background-color: #c0392b;
+}
+
+/* Profile Files Section (Card Style) */
+.profile-files-section {
+  padding: 20px;
+  background-color: #e6f7ff;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.file-card {
+  display: flex;
+  flex-direction: column;
+  padding: 15px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+  background-color: #f1f8e9; /* Light green background */
+}
+
+.file-card-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #4a90e2;
+  margin-bottom: 10px;
+}
+
+.file-list {
+  list-style-type: none;
+  padding: 0;
+}
+
+.file-item {
+  font-size: 14px;
+  color: #555;
+  padding: 5px 0;
+}
+
+.file-item:hover {
+  color: #357ab8;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.profile-files-section h2 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #4a90e2;
+  margin-bottom: 15px;
+}
+
+/* Timetable Section */
+.timetable-section {
+  background-color: #fff0f6; /* Light pink background */
+  border-radius: 10px;
+  padding: 15px;
+  margin-top: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.timetable-section h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #4a90e2;
+  margin-bottom: 10px;
+}
+
+/* Assessments Section */
+.assessments-section {
+  background-color: #fff5e6; /* Light orange background */
+  border-radius: 10px;
+  padding: 15px;
+  margin-top: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.assessments-section h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #4a90e2;
+  margin-bottom: 10px;
+}
+
+.assessment-item label {
+  font-size: 16px;
+  color: #333;
+  gap: 10px;
+}
+
+.assessment-item input {
+  transform: scale(1.2);
+}
+
+/* Class Hours Section */
+.class-hours-section {
+  background-color: #e8f7e7; /* Light green background */
+  border-radius: 10px;
+  padding: 15px;
+  margin-top: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.class-hours-section h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #4a90e2;
+  margin-bottom: 10px;
+}
+
+.class-hours-item {
+  font-size: 16px;
+  margin-bottom: 15px;
+}
+
+.class-hours-item input {
+  width: 60px;
+  padding: 5px;
+  font-size: 14px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  margin-top: 5px;
+}

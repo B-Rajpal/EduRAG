@@ -53,8 +53,8 @@ ul {
 li {
   padding: 10px;
   margin: 10px 0;
-  background-color: #fff;
-  border: 1px solid #ddd;
+  /* background-color: #fff; */
+  /* border: 1px solid #ddd; */
   border-radius: 5px;
 }
 

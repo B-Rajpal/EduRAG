@@ -14,6 +14,7 @@ const Chatbot = ({ subject }) => {
   const chatEndRef = useRef(null);
   const inputRef = useRef(null);
 
+  // Fetch the list of uploaded files
   const fetchFiles = () => {
     if (subject) {
       axios
@@ -26,10 +27,13 @@ const Chatbot = ({ subject }) => {
     }
   };
 
+  // Fetch files when the subject changes
   useEffect(() => {
     fetchFiles();
   }, [subject]);
 
+  // Callback for file upload success
+  
   const handleStart = async () => {
     if (!uploadedfiles.length) {
       setError("No files available to process.");
@@ -37,16 +41,48 @@ const Chatbot = ({ subject }) => {
     }
 
     setLoadingScreen(true);
+
     try {
-      const selectedFiles = uploadedfiles.map(
-        (file) => `E:\\Finalyear_project\\EduRAG\\backend\\${file}`
-      );
+      // Prepare file paths dynamically based on the subject
+      const selectedFiles = uploadedfiles
+        .filter((file) => file.endsWith(".pdf"))
+        .map((file) => `E:\\FINAL YEAR PROJECT\\EduRAG\\backend\\uploads\\${subject}\\${file}`);
       console.log("Processing files:", selectedFiles);
+
+      // Call the chunk endpoint
+      const chunkResponse = await axios.post(
+        "http://localhost:5000/chunk",
+        {
+          filePaths: selectedFiles,
+          subject: subject,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      console.log("Chunk response:", chunkResponse.data);
+
+      // Initialize the model
+      const modelResponse = await axios.post(
+        "http://localhost:5000/initialize",
+        {},
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      console.log("Model initialization response:", modelResponse.data);
+
       setStart(false);
       setError(null);
-    } catch (err) {
-      setError("An error occurred while starting the process.");
-      console.error(err);
+    } catch (error) {
+      console.error("Error:", error.response?.data || error.message);
+      setError("An error occurred during the process. Please try again.");
     } finally {
       setLoadingScreen(false);
     }
@@ -81,6 +117,7 @@ const Chatbot = ({ subject }) => {
     }
   };
 
+  // Scroll to the end of the chat when the chat history updates
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatHistory]);
@@ -89,24 +126,23 @@ const Chatbot = ({ subject }) => {
     <div className="chatbox">
       {loadingScreen && <div className="loading-overlay"><Loader /></div>}
 
+      
       <div className="chathistory">
         {chatHistory.map((chat, index) => (
-  <div
+          <div
             key={index}
             style={{
-              textAlign: chat.role === "User" ? "right" : "left", // Align based on role
+              textAlign: chat.role === "User" ? "right" : "left",
               backgroundColor: chat.role === "User" ? "orange" : "yellow",
               margin: "5px 0",
               padding: "5px 10px",
               borderRadius: "10px",
               display: "inline-block",
-              maxWidth: "70%", // Adjust max width for chat bubbles
               wordWrap: "break-word",
             }}
             className="div1"
-          >
-
-            <strong>{chat.role}:</strong>
+                      >
+                                    <strong>{chat.role}:</strong>
             {chat.isHtml ? (
               <div dangerouslySetInnerHTML={{ __html: chat.message }}></div>
             ) : (
