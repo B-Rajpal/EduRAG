@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
+import json
 from pydantic import BaseModel
 from langchain.text_splitter import TokenTextSplitter
 from langchain_community.vectorstores import FAISS
@@ -225,7 +226,7 @@ def make_directory():
         return jsonify({"message": f"Directory '{subject}' created successfully."}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
+    
 @app.route('/generate_quiz', methods=['POST'])
 def generate_quiz():
     """Endpoint to generate a quiz based on the subject."""
@@ -237,7 +238,7 @@ def generate_quiz():
         return jsonify({"error": "Subject is required"}), 400
 
     try:
-        # Check if the model is initialized, if not, initialize it
+        # Check if the model is initialized
         if ollama_llm is None:
             return jsonify({"error": "Ollama model is not initialized. Please initialize the model first."}), 400
 
@@ -249,34 +250,56 @@ def generate_quiz():
             return jsonify({"error": f"No data available for the subject '{subject}'."}), 400
         
         embedding_model = HuggingFaceEmbeddings(model_name='all-MiniLM-L6-v2')
-        
-        # Load the vector store with allow_dangerous_deserialization set to True
+
+        # Load vector store safely
         vector_store = FAISS.load_local(vector_store_file, embedding_model, allow_dangerous_deserialization=True)
+
+        # 🔹 Check FAISS Data Availability
+        print("Total vectors in FAISS:", vector_store.index.ntotal)  
+        if vector_store.index.ntotal == 0:
+            return jsonify({"error": "No vectors found in FAISS. Please upload content first."}), 400
 
         quiz = []
         for _ in range(num_questions):
-            # Retrieve a relevant chunk of text
-            retriever = vector_store.as_retriever(search_kwargs={"k": 1})  # You can adjust 'k' to fetch more context
-            result = retriever.get_relevant_documents("")  # Empty query for general context
-            
-            # Select the most relevant chunk of text
+            # Retrieve relevant chunk of text
+            retriever = vector_store.as_retriever(search_kwargs={"k": 3})  
+            query = f"Key concepts of {subject}"
+            result = retriever.get_relevant_documents(query)
+
             context = result[0].page_content if result else "No relevant content found."
 
-            # Generate a question based on the context
-            question_prompt = f"Generate a multiple-choice question based on the following content: {context}"
-            question = ollama_llm._call(question_prompt)  # Use Ollama or any language model to generate the question
+            # 🔹 Force JSON Output from LLM
+            question_prompt = f"""
+            You are an AI quiz generator. Based on the following content, generate a multiple-choice question.
 
-            # Generate options for the multiple-choice question
-            options = ["Option 1", "Option 2", "Option 3", "Option 4"]  # Placeholder for options (can be improved)
-            correct_answer = options[0]  # Placeholder for the correct answer
+            Content: "{context}"
 
-            quiz.append({
-                "question": question,
-                "options": options,
-                "correct_answer": correct_answer
-            })
+            Respond strictly in this JSON format:
+            {{
+                "question": "Your question here",
+                "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
+                "answer": "Correct answer from the options"
+            }}
+            Return only JSON, no extra text.
+            """
 
-        # Log the generated quiz in the console for debugging purposes
+            response = ollama_llm._call(question_prompt)
+
+            # 🔹 Debug: Print Raw Response
+            print("Raw LLM Response:", response)
+
+            # 🔹 JSON Parsing with Error Handling
+            try:
+                quiz_item = json.loads(response)
+                if "question" in quiz_item and "options" in quiz_item and "answer" in quiz_item:
+                    quiz.append(quiz_item)
+                else:
+                    print("Invalid Quiz Format:", response)
+            except json.JSONDecodeError:
+                print("Error decoding LLM response:", response)
+                continue
+
+        # 🔹 Log the generated quiz
         print("Generated Quiz:", quiz)
 
         return jsonify({"quiz": quiz}), 200
