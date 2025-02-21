@@ -5,6 +5,7 @@ import Chatbot from "../components/Chatbot";
 import { GoArrowLeft } from "react-icons/go";
 import FileUpload from "../components/Fileupload";
 import axios from "axios";
+import Plot from "react-plotly.js";
 
 const ClassDetails = () => {
   const { id } = useParams();
@@ -13,6 +14,9 @@ const ClassDetails = () => {
   const [files, setFiles] = useState([]);
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [tsneData, setTsneData] = useState([]);
+  const [ref_tsneData,setRef_tsneData] = useState([]);
+  const [queryPoint, setQueryPoint] = useState(null); // For dynamic updates to t-SNE
 
   useEffect(() => {
     const fetchClassDetails = async () => {
@@ -40,11 +44,41 @@ const ClassDetails = () => {
     }
   };
 
+  const formatText = (text, maxLength = 30) => {
+    return text.length > maxLength
+      ? text.match(new RegExp(`.{1,${maxLength}}`, "g")).join("<br>")
+      : text;
+  };
+
+  const fetchTsneData = () => {
+    if (selectedClass) {
+      axios
+        .post(`http://localhost:5000/tsne`, {
+          subject: selectedClass.class.title,
+        })
+        .then((response) => {
+          const data = Array.isArray(response.data.data) ? response.data.data : [];
+          console.log(data);
+          setTsneData(data);
+        })
+        .catch((err) => {
+          setError("Error fetching t-SNE data");
+          console.error("Error:", err);
+        });
+    }
+  };
+
+  useEffect(() => {
+    if (selectedClass) {
+      fetchFiles();
+    }
+  }, [selectedClass]);
+
   const handleDeleteClass = async () => {
     try {
       await axios.delete(`http://localhost:5001/classes/${id}`);
       alert("Class deleted successfully.");
-      navigate("/"); // Redirect to the main page or any other page
+      navigate("/");
     } catch (error) {
       console.error("Error deleting class:", error);
       alert("Failed to delete class.");
@@ -64,11 +98,17 @@ const ClassDetails = () => {
     }
   };
 
-  useEffect(() => {
-    if (selectedClass) {
-      fetchFiles(); // Re-fetch files when selectedClass changes
+  const handleQuerySubmit = (point,all_embeddings,reference_embeddings) => {
+    if (point) {
+      setQueryPoint(point);
     }
-  }, [selectedClass]);
+    if(all_embeddings){
+      setTsneData(all_embeddings);
+    }
+    if(reference_embeddings){
+      setRef_tsneData(reference_embeddings);
+    }
+  };
 
   if (error) {
     return (
@@ -100,7 +140,6 @@ const ClassDetails = () => {
         <p className="class-teacher">Taught by: {selectedClass.class.teacher}</p>
         <p className="class-description">{selectedClass.class.description}</p>
 
-        {/* FileUpload component */}
         <FileUpload subject={selectedClass.class.title} onFileUpload={fetchFiles} />
 
         <div className="file-preview">
@@ -113,7 +152,10 @@ const ClassDetails = () => {
               {files.map((file, index) => (
                 <li key={index}>
                   {file}
-                  <button onClick={() => handleDeleteFile(file)} className="delete-button">
+                  <button
+                    onClick={() => handleDeleteFile(file)}
+                    className="delete-button"
+                  >
                     Delete
                   </button>
                 </li>
@@ -123,10 +165,55 @@ const ClassDetails = () => {
             <p>No files available for this subject.</p>
           )}
         </div>
-      </div>
 
-      {/* Chatbot component */}
-      <Chatbot subject={selectedClass.class.title} />
+        <div className="tsne-preview">
+          <h2>t-SNE Visualization</h2>
+          {tsneData && tsneData.length > 0 ? (
+            <Plot
+              data={[
+                {
+                  x: tsneData.map((point) => point.x),
+                  y: tsneData.map((point) => point.y),
+                  mode: "markers",
+                  type: "scatter",
+                  text: tsneData.map((point) =>formatText( point.text,30)), // Labels on hover
+                  hoverinfo: "text", // Ensures text is displayed on hover
+                  marker: { color: "blue", size: 10 },
+                  textfont: { family: "Arial", size: 12, color: "black" }
+                },
+                queryPoint && {
+                  x: [queryPoint.x],
+                  y: [queryPoint.y],
+                  mode: "markers",
+                  type: "scatter",
+                  text: [formatText(queryPoint.text,30)], // Label for query point
+                  hoverinfo: "text",
+                  marker: { color: "red", size: 12 },
+                },
+                ref_tsneData && {
+                  x: ref_tsneData.map((point) => point.x),
+                  y: ref_tsneData.map((point) => point.y),
+                  mode: "markers",
+                  type: "scatter",
+                  text: ref_tsneData.map((point) =>formatText( point.text,30)), // Labels on hover
+                  hoverinfo: "text", // Ensures text is displayed on hover
+                  marker: { color: "green", size: 10 },
+                  textfont: { family: "Arial", size: 12, color: "black" }
+                }
+              ].filter(Boolean)}
+              layout={{
+                title: "t-SNE Visualization",
+                xaxis: { title: "Dimension 1" },
+                yaxis: { title: "Dimension 2" },
+              }}
+            />
+          ) : (
+            <p>No valid t-SNE data available to display. Please check the backend response.</p>
+          )}
+        </div>
+
+        <Chatbot subject={selectedClass.class.title} onQuerySubmit={handleQuerySubmit} />
+      </div>
     </div>
   );
 };

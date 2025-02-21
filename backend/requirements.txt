@@ -11,3 +11,5 @@ tiktoken
 markdown
 pymysql
 bcrypt
+scikit-learn
+langchain_huggingface

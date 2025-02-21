@@ -4,12 +4,12 @@ import axios from "axios";
 import { FaPaperPlane } from "react-icons/fa";
 import Loader from "./Loader";
 
-const Chatbot = ({ subject }) => {
-  const [input, setInput] = useState("");
-  const [chatHistory, setChatHistory] = useState([]);
-  const [loadingScreen, setLoadingScreen] = useState(false);
+const Chatbot = ({ subject, onQuerySubmit }) => { // Add onQuerySubmit as a prop
+  const [input, setInput] = useState(""); // For user input
+  const [chatHistory, setChatHistory] = useState([]); // To store chat history
+  const [loadingScreen, setLoadingScreen] = useState(false); // State for loading overlay
   const [start, setStart] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState(false);
   const [uploadedfiles, setUploadedfiles] = useState([]);
   const chatEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -46,7 +46,7 @@ const Chatbot = ({ subject }) => {
       // Prepare file paths dynamically based on the subject
       const selectedFiles = uploadedfiles
         .filter((file) => file.endsWith(".pdf"))
-        .map((file) => `E:\\FINAL YEAR PROJECT\\EduRAG\\backend\\uploads\\${subject}\\${file}`);
+        .map((file) => `E:\\Finalyear_project\\EduRAG\\backend\\uploads\\${subject}\\${file}`);
       console.log("Processing files:", selectedFiles);
 
       // Call the chunk endpoint
@@ -106,6 +106,14 @@ const Chatbot = ({ subject }) => {
         ...prev,
         { role: "Bot", message: response.data.answer || "No response received.", isHtml: true },
       ]);
+
+      // Send query to ClassDetails for visualization
+      if (onQuerySubmit) {
+        const queryPoint = response.data.query_point; // Assuming query_point is in the response
+        const all_embeddings = response.data.existing_embeddings;
+        const reference_embeddings = response.data.reference_embeddings;
+        onQuerySubmit(queryPoint,all_embeddings,reference_embeddings); // Send the query point for visualization
+      }
     } catch (err) {
       setError("Error processing your request.");
       setChatHistory((prev) => [
@@ -148,7 +156,7 @@ const Chatbot = ({ subject }) => {
             ) : (
               chat.message
             )}
-            <br/>
+            <br />
           </div>
         ))}
         <div ref={chatEndRef}></div>
