@@ -8,6 +8,7 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Profile from './pages/Profile';
 import CreateClass from './pages/CreateClass';
+import QuizGeneration from './components/QuizGeneration';
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/form" element={<CreateClass />} />
+        <Route path="/quiz" element={<QuizGeneration/>} />
         </Routes>
       </div>
     </Router>

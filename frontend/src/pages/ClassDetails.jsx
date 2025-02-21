@@ -143,7 +143,11 @@ const ClassDetails = () => {
         <FileUpload subject={selectedClass.class.title} onFileUpload={fetchFiles} />
 
         <div className="file-preview">
-          <h2>Preview Files</h2>
+        <button onClick={() => navigate(`/quiz?subject=${selectedClass.class.title}`)}>
+  Quiz
+</button>
+
+        <h2>Preview Files</h2>
           {error && <p className="error">{error}</p>}
           {isLoading ? (
             <p>Loading files...</p>

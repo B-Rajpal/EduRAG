@@ -87,7 +87,6 @@ const Chatbot = ({ subject, onQuerySubmit }) => { // Add onQuerySubmit as a prop
       setLoadingScreen(false);
     }
   };
-
   const handleSend = async () => {
     if (!input.trim()) return;
 

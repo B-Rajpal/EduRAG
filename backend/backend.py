@@ -9,8 +9,8 @@ CORS(app)
 # MySQL Database Configuration
 DB_HOST = "localhost"
 DB_USER = "root"
-DB_PASSWORD = "Rajpal@1704"  # Replace with your MySQL root password
-DB_NAME = "users"
+DB_PASSWORD = "root123"  # Replace with your MySQL root password
+DB_NAME = "user"
 
 # Connect to the MySQL database
 def get_db_connection():

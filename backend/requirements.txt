@@ -11,5 +11,6 @@ tiktoken
 markdown
 pymysql
 bcrypt
+pdfplumber
 scikit-learn
 langchain_huggingface
