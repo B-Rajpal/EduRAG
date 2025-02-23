@@ -4,7 +4,7 @@ import axios from "axios";
 import { FaPaperPlane } from "react-icons/fa";
 import Loader from "./Loader";
 
-const Chatbot = ({ subject, onQuerySubmit }) => { // Add onQuerySubmit as a prop
+const Chatbot = ({ subject, onQuerySubmit, onStart }) => { // Add onQuerySubmit as a prop
   const [input, setInput] = useState(""); // For user input
   const [chatHistory, setChatHistory] = useState([]); // To store chat history
   const [loadingScreen, setLoadingScreen] = useState(false); // State for loading overlay
@@ -77,7 +77,7 @@ const Chatbot = ({ subject, onQuerySubmit }) => { // Add onQuerySubmit as a prop
       );
 
       console.log("Model initialization response:", modelResponse.data);
-
+      onStart();
       setStart(false);
       setError(null);
     } catch (error) {

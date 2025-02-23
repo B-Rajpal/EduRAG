@@ -336,83 +336,89 @@ def make_directory():
         return jsonify({"message": f"Directory created successfully for subject: {subject}"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-    
+
 @app.route('/generate_quiz', methods=['POST'])
 def generate_quiz():
     """Endpoint to generate a quiz based on the subject."""
     data = request.get_json()
     subject = data.get("subject")
-    num_questions = data.get("num_questions", 5)  # Default to 5 questions
 
     if not subject:
         return jsonify({"error": "Subject is required"}), 400
 
     try:
-        # Check if the model is initialized
         if ollama_llm is None:
             return jsonify({"error": "Ollama model is not initialized. Please initialize the model first."}), 400
 
-        # Load the vector store for the given subject
         subject_folder = os.path.join(UPLOAD_FOLDER, subject)
         vector_store_file = os.path.join(subject_folder, "vector_store")
-        
+
         if not os.path.exists(vector_store_file):
             return jsonify({"error": f"No data available for the subject '{subject}'."}), 400
-        
-        embedding_model = HuggingFaceEmbeddings(model_name='all-MiniLM-L6-v2')
 
-        # Load vector store safely
+        embedding_model = HuggingFaceEmbeddings(model_name='all-MiniLM-L6-v2')
         vector_store = FAISS.load_local(vector_store_file, embedding_model, allow_dangerous_deserialization=True)
 
-        # 🔹 Check FAISS Data Availability
-        print("Total vectors in FAISS:", vector_store.index.ntotal)  
         if vector_store.index.ntotal == 0:
             return jsonify({"error": "No vectors found in FAISS. Please upload content first."}), 400
 
-        quiz = []
-        for _ in range(num_questions):
-            # Retrieve relevant chunk of text
-            retriever = vector_store.as_retriever(search_kwargs={"k": 3})  
-            query = f"Key concepts of {subject}"
-            result = retriever.get_relevant_documents(query)
+        retriever = vector_store.as_retriever(search_kwargs={"k": 3})
+        query = f"Key concepts of {subject}"
+        result = retriever.invoke(query)
+        context = result[0].page_content if result else "No relevant content found."
 
-            context = result[0].page_content if result else "No relevant content found."
+        question_prompt = f"""
+        You are an expert quiz generator. Create 10 to 20 multiple-choice questions based on the given content.
 
-            # 🔹 Force JSON Output from LLM
-            question_prompt = f"""
-            You are an AI quiz generator. Based on the following content, generate a multiple-choice question.
+        ### **Content**:
+        "{context}"
 
-            Content: "{context}"
-
-            Respond strictly in this JSON format:
+        ### **Instructions**:
+        - Each question must have **exactly 4 answer choices**.
+        - Clearly indicate the correct answer.
+        - Format the response as **valid JSON list of objects**, like this:
+        
+        ```json
+        [
             {{
-                "question": "Your question here",
+                "question": "What is the first line of code to load the 'Diamonds' dataset?",
                 "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
-                "answer": "Correct answer from the options"
+                "answer": "Option 1"
+            }},
+            {{
+                "question": "Which package is used for data visualization?",
+                "options": ["ggplot2", "dplyr", "tidyr", "corrplot"],
+                "answer": "ggplot2"
             }}
-            Return only JSON, no extra text.
-            """
+        ]
+        ```
+        """
 
-            response = ollama_llm._call(question_prompt)
+        response = ollama_llm.invoke(question_prompt)
 
-            # 🔹 Debug: Print Raw Response
-            print("Raw LLM Response:", response)
+        try:
+            raw_response = response.strip()
+            print(raw_response)
+            print(raw_response)  # Debugging output
 
-            # 🔹 JSON Parsing with Error Handling
-            try:
-                quiz_item = json.loads(response)
-                if "question" in quiz_item and "options" in quiz_item and "answer" in quiz_item:
-                    quiz.append(quiz_item)
-                else:
-                    print("Invalid Quiz Format:", response)
-            except json.JSONDecodeError:
-                print("Error decoding LLM response:", response)
-                continue
+            # Remove ```json and ``` if present
+            if raw_response.startswith("```json"):
+                raw_response = raw_response.replace("```json", "").replace("```", "").strip()
 
-        # 🔹 Log the generated quiz
-        print("Generated Quiz:", quiz)
+            quiz = json.loads(raw_response)
 
-        return jsonify({"quiz": quiz}), 200
+            # Validate response structure
+            valid_quiz = [
+                item for item in quiz if isinstance(item, dict) and
+                all(k in item for k in ["question", "options", "answer"]) and
+                isinstance(item["options"], list) and len(item["options"]) == 4 and
+                item["answer"] in item["options"]
+            ]
+
+            return jsonify({"quiz": valid_quiz}), 200
+
+        except (json.JSONDecodeError, ValueError):
+            return jsonify({"error": "Invalid response format from LLM"}), 500
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
