@@ -32,6 +32,7 @@ class OllamaLLM(LLM, BaseModel):
     model_name: str  # Explicitly declare the model_name field
 
     def _call(self, prompt: str, stop=None):
+        # Use the correct method for interacting with the model
         response = ollama.generate(model=self.model_name, prompt=prompt)
         return response["response"]
 

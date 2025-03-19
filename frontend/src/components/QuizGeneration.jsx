@@ -8,33 +8,28 @@ const QuizGeneration = () => {
     const [numQuestions, setNumQuestions] = useState(5);
 
     useEffect(() => {
-        // Get the subject from the query params (assuming it's passed from the previous page)
+        // Get subject from URL params
         const urlParams = new URLSearchParams(window.location.search);
         const subjectParam = urlParams.get('subject');
-        if (subjectParam) {
-            setSubject(subjectParam);
-        } else {
+
+        if (!subjectParam) {
             setError('Subject is required');
             setLoading(false);
             return;
         }
+        setSubject(subjectParam); // Set the subject state
 
-        // Fetch quiz data from the backend
+        // Fetch quiz from the backend
         const fetchQuiz = async () => {
             try {
                 const response = await fetch('http://localhost:5000/generate_quiz', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        subject: subjectParam,
-                        num_questions: numQuestions,
-                    }),
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ subject: subjectParam, num_questions: numQuestions }),
                 });
 
                 if (!response.ok) {
-                    const data = await response.json();
+                    const data = await response.json().catch(() => ({ error: 'Invalid JSON response' }));
                     setError(data.error || 'Failed to generate quiz');
                 } else {
                     const data = await response.json();
@@ -48,7 +43,7 @@ const QuizGeneration = () => {
         };
 
         fetchQuiz();
-    }, [subject, numQuestions]);
+    }, []); // ✅ Empty dependency array prevents infinite calls
 
     return (
         <div className="quiz-container">
