@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom"; // Use useNavigate for navigation
-import axios from "axios"; // Import axios for HTTP requests
-import "../styles/login.css"; // Import the CSS file
+import { useNavigate } from "react-router-dom"; 
+import axios from "axios"; 
+import "../styles/login.css"; 
 
 const Login = () => {
   const [email, setEmail] = useState(""); // State for email
@@ -42,8 +42,8 @@ const Login = () => {
             type="email"
             id="email"
             name="email"
-            value={email} // Bind state to input
-            onChange={(e) => setEmail(e.target.value)} // Update state on change
+            value={email} 
+            onChange={(e) => setEmail(e.target.value)} 
             required
             className="input-field"
           />
