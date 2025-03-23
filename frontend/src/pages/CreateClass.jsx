@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import axios from "axios";
 import "../styles/createclass.css";
 import { useNavigate } from "react-router-dom";
+import { GoArrowLeft } from "react-icons/go";
+
 const CreateClass = () => {
   const [formData, setFormData] = useState({
     title: "",
@@ -83,7 +85,13 @@ const CreateClass = () => {
   };
 
   return (
+    
     <div className="create-class-container">
+
+<button className="back-button" onClick={() => navigate(-1)}>
+        <GoArrowLeft />
+      </button>
+      
       <h1>Create New Class</h1>
       <form onSubmit={handleSubmit} className="create-class-form">
         <div className="form-group">

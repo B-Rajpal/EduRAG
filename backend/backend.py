@@ -9,8 +9,8 @@ CORS(app)
 # MySQL Database Configuration
 DB_HOST = "localhost"
 DB_USER = "root"
-DB_PASSWORD = "Rajpal@1704"  # Replace with your MySQL root password
-DB_NAME = "users"
+DB_PASSWORD = "Pr@040903"  # Replace with your MySQL root password
+DB_NAME = "users1"
 
 # Connect to the MySQL database
 def get_db_connection():
@@ -49,7 +49,7 @@ def init_db():
     title VARCHAR(255) NOT NULL,
     teacher VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
-    total_hours INT NOT NULL,
+    totalHours INT NOT NULL,
     number_of_assessments INT NOT NULL,
     assessments JSON NOT NULL,
     created_by INT NOT NULL,
@@ -138,7 +138,7 @@ def create_class():
         with conn.cursor() as cursor:
             # Insert data into the classes table
             cursor.execute("""
-                INSERT INTO classes (title, teacher, description, total_hours, number_of_assessments, assessments, created_by)
+                INSERT INTO classes (title, teacher, description,totalHours, number_of_assessments, assessments, created_by)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
             """, (title, teacher, description, total_hours, number_of_assessments, json.dumps(assessments), created_by))
             conn.commit()
@@ -182,7 +182,7 @@ def get_total_hours():
         conn = get_db_connection()
         with conn.cursor() as cursor:
             # Fetch class data including total_hours
-            cursor.execute("SELECT title, total_hours FROM classes")
+            cursor.execute("SELECT title, totalHours FROM classes")
             class_data = cursor.fetchall()
 
         if class_data:

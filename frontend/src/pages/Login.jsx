@@ -46,6 +46,7 @@ const Login = () => {
             onChange={(e) => setEmail(e.target.value)} // Update state on change
             required
             className="input-field"
+            placeholder=" "
           />
         </div>
         <div className="form-group">
@@ -58,6 +59,7 @@ const Login = () => {
             onChange={(e) => setPassword(e.target.value)} // Update state on change
             required
             className="input-field"
+            placeholder=" "
           />
         </div>
         {error && <div className="error-message">{error}</div>} {/* Display error message */}

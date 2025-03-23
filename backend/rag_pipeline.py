@@ -59,7 +59,7 @@ def initialize_model():
     global ollama_llm
 
     if ollama_llm is None:
-        ollama_llm = Ollama(model="qwen2.5:0.5b")
+        ollama_llm = Ollama(model="llama3.2")
         return jsonify({"message": "Model initialized successfully"}), 200
     else:
         return jsonify({"message": "Model already initialized"}), 200

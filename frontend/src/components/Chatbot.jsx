@@ -46,7 +46,7 @@ const Chatbot = ({ subject, onQuerySubmit, onStart }) => { // Add onQuerySubmit 
       // Prepare file paths dynamically based on the subject
       const selectedFiles = uploadedfiles
         .filter((file) => file.endsWith(".pdf"))
-        .map((file) => `E:\\Finalyear_project\\EduRAG\\backend\\uploads\\${subject}\\${file}`);
+        .map((file) => `E:\\final year project\\EduRAG\\backend\\uploads\\${subject}\\${file}`);
       console.log("Processing files:", selectedFiles);
 
       // Call the chunk endpoint
