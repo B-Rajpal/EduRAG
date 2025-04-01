@@ -42,7 +42,7 @@ const FileUpload = ({ subject, onFileUpload }) => {
 
       // Call the chunk endpoint after files are uploaded
       const selectedFiles = Array.from(files)
-        .map((file) => `E:\\FINAL YEAR PROJECT\\EduRAG\\backend\\uploads\\${subject}\\${file.name}`);
+        .map((file) => `E:\\final year project\\EduRAG\\backend\\uploads\\${subject}\\${file.name}`);
 
       const chunkResponse = await axios.post(
         "http://localhost:5000/chunk",

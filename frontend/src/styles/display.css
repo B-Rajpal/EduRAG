@@ -1,8 +1,8 @@
 /* Main container */
 .home-container {
   font-family: 'Arial', sans-serif;
-  background-image: url('https://c0.wallpaperflare.com/preview/700/360/51/bible-wallpaper-devotional-bible-study-thumbnail.jpg');
-  background-repeat: no-repeat;
+  /* background: rgb(170,165,165); */
+/* background: linear-gradient(331deg, rgba(170,165,165,1) 14%, rgba(82,121,147,1) 44%, rgba(184,182,174,0.5013655120251226) 100%); */
   background-size: cover;
   padding: 20px;
   min-height: 100vh;
@@ -23,6 +23,12 @@
 .main-title {
   font-size: 2.5rem;
   font-weight: bold;
+}
+.logo {
+  width: 90px; /* Adjust width as needed */
+  height: auto; /* Maintains aspect ratio */
+  margin-right: 10px; /* Space between logo and text */
+  /* vertical-align: middle; / */
 }
 
 .header-actions {
@@ -96,40 +102,28 @@
 /* Class Card Styling with Animation */
 .class-card {
   display: flex;
-  flex-direction: column; /* Stack items vertically */
-  align-items: center; /* Center align the content */
-  background: rgb(2, 0, 36);
-  background: linear-gradient(90deg, rgba(2, 0, 36, 1) 0%, rgba(195, 195, 204, 1) 0%, rgba(230, 232, 230, 0.6839985994397759) 35%);
+  flex-direction: column;
+  align-items: center;
+  background: linear-gradient(90deg, rgba(2, 0, 36, 1) 0%, rgba(195, 195, 204, 1) 0%, rgba(230, 232, 230, 0.683) 35%);
   border-radius: 10px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   padding: 20px;
   cursor: pointer;
-  transition: transform 0.3s, box-shadow 0.3s, background-color 0.5s ease-in-out;
-  clip-path: border-box;
+  transition: transform 0.3s, box-shadow 0.3s, filter 0.3s ease-in-out;
   margin-bottom: 10px;
-  text-align: center; /* Center-align text */
-  opacity: 0.5; /* Start hidden for animation */
-  animation: slideIn 0.5s ease-out forwards; /* Slide in effect */
+  text-align: center;
+  animation: slideIn 0.5s ease-out forwards;
 }
 
 .class-card:hover {
   transform: translateY(-10px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
-  animation: hoverPop 0.3s ease-in-out;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25);
+  filter: brightness(1.2); /* Increase brightness to highlight */
 }
 
-/* Animated Book Image */
-.class-card img {
-  width: 120px; /* Adjust image size */
-  height: auto;
-  border-radius: 5px;
-  margin-bottom: 20px; /* Space between image and content */
-  transition: transform 0.3s ease-in-out; /* Smooth transform for hover */
-}
 
-.class-card img:hover {
-  transform: scale(1.1); /* Slight zoom-in on hover */
-}
+
+
 
 /* Class Card Content */
 .class-card-content {
@@ -172,4 +166,25 @@
 .view-class-button:hover {
   background-color: #005bb5;
   transform: scale(1.05); /* Slight grow effect on hover */
+}
+.search-input {
+  padding: 8px 12px;
+  align-items: center;
+  margin-right: 20px;
+  font-size: 16px;
+  border: 2px solid #ccc;
+  border-radius: 20px;
+  outline: none;
+  width: 250px;
+  transition: border-color 0.3s ease-in-out;
+}
+
+.search-input:focus {
+  border-color: #007bff;
+}
+
+.search-icon {
+ 
+  cursor: pointer;
+  color: #666;
 }

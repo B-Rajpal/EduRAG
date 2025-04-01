@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
+import json
 from pydantic import BaseModel
 from langchain.text_splitter import TokenTextSplitter
 from langchain_community.vectorstores import FAISS
@@ -8,10 +9,12 @@ from langchain.chains import RetrievalQA
 from langchain.document_loaders import PyPDFLoader
 from langchain.prompts import PromptTemplate
 from sentence_transformers import SentenceTransformer
-from langchain.embeddings import HuggingFaceEmbeddings
-import ollama
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.llms import Ollama
 from langchain.llms.base import LLM
 import markdown
+from sklearn.manifold import TSNE
+import numpy as np
 
 # Flask app setup
 app = Flask(__name__)
@@ -24,13 +27,14 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 # Global variables
 ollama_llm = None
 vector_stores = {}
+chunked_data = {}
 
 # Define a custom LLM wrapper for Ollama to integrate with LangChain
 class OllamaLLM(LLM, BaseModel):
     model_name: str
 
     def _call(self, prompt: str, stop=None):
-        response = ollama.generate(model=self.model_name, prompt=prompt)
+        response = Ollama.generate(model=self.model_name, prompt=prompt)
         return response["response"]
 
     @property
@@ -55,7 +59,7 @@ def initialize_model():
     global ollama_llm
 
     if ollama_llm is None:
-        ollama_llm = OllamaLLM(model_name="llama3.2")
+        ollama_llm = Ollama(model="llama3.2")
         return jsonify({"message": "Model initialized successfully"}), 200
     else:
         return jsonify({"message": "Model already initialized"}), 200
@@ -103,9 +107,10 @@ def delete_file():
             return jsonify({"error": str(e)}), 500
     else:
         return jsonify({"error": f"File '{file_name}' not found."}), 404
+
 @app.route('/chunk', methods=['POST'])
 def chunk_files():
-    """Endpoint to process multiple uploaded files into chunks."""
+    """Endpoint to process multiple uploaded files into chunks and return embeddings for t-SNE."""
     data = request.get_json()
     file_paths = data.get("filePaths")
     subject = data.get("subject")
@@ -122,36 +127,81 @@ def chunk_files():
     try:
         embedding_model = HuggingFaceEmbeddings(model_name='all-MiniLM-L6-v2')
         all_texts = []
+        embeddings = []
 
         # Process each file
         for file_path in file_paths:
             if os.path.exists(file_path):
-                print(f"Processing file: {file_path}")
                 loader = PyPDFLoader(file_path)
                 documents = loader.load()
-                print(f"Loaded {len(documents)} documents from {file_path}.")
 
                 token_splitter = TokenTextSplitter(chunk_size=500, chunk_overlap=50)
                 texts = token_splitter.split_documents(documents)
-                print(f"Split into {len(texts)} chunks.")
                 all_texts.extend(texts)  # Collect all texts
+
+                # Generate embeddings for each text chunk
+                embeddings.extend(embedding_model.embed_documents([text.page_content for text in texts]))
             else:
-                print(f"File not found: {file_path}")
                 return jsonify({"error": f"File not found: {file_path}"}), 400
 
         # Create the vector store from all combined texts
         vector_store = FAISS.from_documents(all_texts, embedding=embedding_model)
-        print("Vector store created successfully.")
 
         # Save the vector store
         vector_store.save_local(vector_store_file)
-        print(f"Vector store saved at {vector_store_file}.")
         vector_stores[subject] = vector_store  # Cache the vector store in memory
+
+        # Store chunked data in memory
+        chunked_data[subject] = {
+            "embeddings": embeddings,
+            "texts": [text.page_content for text in all_texts]
+        }
 
         return jsonify({"message": "All files processed and vector store updated successfully"}), 200
     except Exception as e:
-        print(f"Error: {e}")
         return jsonify({"error": str(e)}), 500
+    
+@app.route('/tsne', methods=['POST'])
+def tsne_visualization():
+    """Endpoint to generate t-SNE embeddings for visualization."""
+    data = request.get_json()
+    subject = data.get("subject")
+
+    if not subject:
+        return jsonify({"error": "Subject is required"}), 400
+    if subject not in chunked_data:
+        return jsonify({"error": f"No chunked data available for subject '{subject}'"}), 404
+
+    try:
+        # # Debug: Log the chunked_data structure
+        # print(f"Chunked data keys: {chunked_data.keys()}")
+        # print(f"Chunked data for subject: {chunked_data[subject]}")
+
+        # Retrieve embeddings and texts
+        embeddings = np.array(chunked_data[subject]["embeddings"])
+        texts = chunked_data[subject]["texts"]
+
+        # Validate embeddings
+        if embeddings.ndim != 2:
+            return jsonify({"error": "Embeddings should be a 2D array."}), 400
+
+        # Perform t-SNE
+        n_samples = len(embeddings)
+        perplexity = min(30, n_samples - 1)
+        tsne = TSNE(n_components=2, perplexity=min(30,perplexity-1),random_state=42)
+        tsne_results = tsne.fit_transform(embeddings)
+
+        tsne_data = [
+            {"x": float(coord[0]), "y": float(coord[1]), "text": text}
+            for coord, text in zip(tsne_results, texts)
+        ]
+
+        return jsonify({"data": tsne_data}), 200
+    except Exception as e:
+        # Debug: Log the exact error
+        print(f"Error during t-SNE: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
 
 @app.route('/preview', methods=['GET'])
 def preview_files():
@@ -178,7 +228,7 @@ def preview_files():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
+    
 @app.route('/rag', methods=['POST'])
 def rag_pipeline():
     """Endpoint to handle the RAG pipeline for queries."""
@@ -194,44 +244,86 @@ def rag_pipeline():
         return jsonify({"error": "Subject is required"}), 400
 
     try:
-        # Ensure the Ollama LLM is initialized
         if ollama_llm is None:
             ollama_llm = OllamaLLM(model_name="llama3.2")
 
-        # Path to the vector store file
         subject_folder = os.path.join(UPLOAD_FOLDER, subject)
         vector_store_file = os.path.join(subject_folder, "vector_store")
 
-        # Check if the vector store file exists
         if not os.path.exists(vector_store_file):
             return jsonify({"error": f"Vector store for '{subject}' not found."}), 404
 
-        # Perform safe deserialization for trusted files
         embedding_model = HuggingFaceEmbeddings(model_name='all-MiniLM-L6-v2')
+
         try:
             vector_store = FAISS.load_local(vector_store_file, embedding_model, allow_dangerous_deserialization=True)
         except Exception as e:
             return jsonify({"error": f"Failed to load vector store: {str(e)}"}), 500
 
-        # Cache the vector store in memory
         vector_stores[subject] = vector_store
 
-        # Define the RetrievalQA chain
+        # Generate embedding for the query
+        query_embedding = np.array(embedding_model.embed_documents([query]))
+
+        # Retrieve reference content
+        retriever = vector_store.as_retriever(search_kwargs={"k": 5})
+        retrieved_docs = retriever.get_relevant_documents(query)
+        reference_texts = [doc.page_content for doc in retrieved_docs]
+        reference_embeddings = np.array(embedding_model.embed_documents(reference_texts))
+
+        # Load existing embeddings
+        existing_embeddings = np.array(chunked_data[subject]["embeddings"])
+        existing_texts = chunked_data[subject]["texts"]
+
+        # Perform t-SNE
+        all_embeddings = np.concatenate([existing_embeddings, reference_embeddings, query_embedding], axis=0)
+        n_samples = len(all_embeddings)
+        perplexity = min(30, n_samples - 1)
+        tsne = TSNE(n_components=2, perplexity=perplexity, random_state=42)
+        tsne_result = tsne.fit_transform(all_embeddings)
+
+        # Split t-SNE results
+        tsne_existing = tsne_result[:len(existing_embeddings)]
+        tsne_reference = tsne_result[len(existing_embeddings):-1]
+        tsne_query = tsne_result[-1]
+
+        # Run LLM for response
         qa = RetrievalQA.from_chain_type(
             llm=ollama_llm,
             chain_type="stuff",
-            retriever=vector_store.as_retriever(search_kwargs={"k": 5}),
+            retriever=retriever,
             chain_type_kwargs={"prompt": PROMPT},
-            return_source_documents=False
+            return_source_documents=True
         )
 
-        result = qa({"query": query})
+        result = qa.invoke({"query": query})
         answer = result['result']
 
-        return jsonify({"answer": markdown.markdown(answer)}), 200
+        # Prepare t-SNE data
+        tsne_existing_data = [
+            {"x": float(coord[0]), "y": float(coord[1]), "text": text}
+            for coord, text in zip(tsne_existing, existing_texts)
+        ]
+        tsne_reference_data = [
+            {"x": float(coord[0]), "y": float(coord[1]), "text": text}
+            for coord, text in zip(tsne_reference, reference_texts)
+        ]
+
+        return jsonify({
+            "answer": markdown.markdown(answer),
+            "query_point": {
+                "x": float(tsne_query[0]),
+                "y": float(tsne_query[1]),
+                "text": query
+            },
+            "existing_embeddings": tsne_existing_data,
+            "reference_embeddings": tsne_reference_data
+        }), 200
 
     except Exception as e:
+        print(e)
         return jsonify({"error": str(e)}), 500
+
 
 @app.route("/makedir", methods=["GET"])
 def make_directory():
@@ -241,7 +333,93 @@ def make_directory():
             return jsonify({"error": "Subject is required"}), 400
         subject_path = os.path.join(UPLOAD_FOLDER, subject)
         os.makedirs(subject_path, exist_ok=True)
-        return jsonify({"message": f"Directory '{subject}' created successfully."}), 200
+        return jsonify({"message": f"Directory created successfully for subject: {subject}"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/generate_quiz', methods=['POST'])
+def generate_quiz():
+    """Endpoint to generate a quiz based on the subject."""
+    data = request.get_json()
+    subject = data.get("subject")
+
+    if not subject:
+        return jsonify({"error": "Subject is required"}), 400
+
+    try:
+        if ollama_llm is None:
+            return jsonify({"error": "Ollama model is not initialized. Please initialize the model first."}), 400
+
+        subject_folder = os.path.join(UPLOAD_FOLDER, subject)
+        vector_store_file = os.path.join(subject_folder, "vector_store")
+
+        if not os.path.exists(vector_store_file):
+            return jsonify({"error": f"No data available for the subject '{subject}'."}), 400
+
+        embedding_model = HuggingFaceEmbeddings(model_name='all-MiniLM-L6-v2')
+        vector_store = FAISS.load_local(vector_store_file, embedding_model, allow_dangerous_deserialization=True)
+
+        if vector_store.index.ntotal == 0:
+            return jsonify({"error": "No vectors found in FAISS. Please upload content first."}), 400
+
+        retriever = vector_store.as_retriever(search_kwargs={"k": 3})
+        query = f"Key concepts of {subject}"
+        result = retriever.invoke(query)
+        context = result[0].page_content if result else "No relevant content found."
+
+        question_prompt = f"""
+        You are an expert quiz generator. Create 10 to 20 multiple-choice questions based on the given content.
+
+        ### **Content**:
+        "{context}"
+
+        ### **Instructions**:
+        - Each question must have **exactly 4 answer choices**.
+        - Clearly indicate the correct answer.
+        - Format the response as **valid JSON list of objects**, like this:
+        
+        ```json
+        [
+            {{
+                "question": "What is the first line of code to load the 'Diamonds' dataset?",
+                "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
+                "answer": "Option 1"
+            }},
+            {{
+                "question": "Which package is used for data visualization?",
+                "options": ["ggplot2", "dplyr", "tidyr", "corrplot"],
+                "answer": "ggplot2"
+            }}
+        ]
+        ```
+        """
+
+        response = ollama_llm.invoke(question_prompt)
+
+        try:
+            raw_response = response.strip()
+            print(raw_response)
+            print(raw_response)  # Debugging output
+
+            # Remove ```json and ``` if present
+            if raw_response.startswith("```json"):
+                raw_response = raw_response.replace("```json", "").replace("```", "").strip()
+
+            quiz = json.loads(raw_response)
+
+            # Validate response structure
+            valid_quiz = [
+                item for item in quiz if isinstance(item, dict) and
+                all(k in item for k in ["question", "options", "answer"]) and
+                isinstance(item["options"], list) and len(item["options"]) == 4 and
+                item["answer"] in item["options"]
+            ]
+
+            return jsonify({"quiz": valid_quiz}), 200
+
+        except (json.JSONDecodeError, ValueError):
+            return jsonify({"error": "Invalid response format from LLM"}), 500
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
