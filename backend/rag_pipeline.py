@@ -15,7 +15,7 @@ from langchain.llms.base import LLM
 import markdown
 from sklearn.manifold import TSNE
 import numpy as np
-
+import re
 # Flask app setup
 app = Flask(__name__)
 CORS(app)
@@ -336,19 +336,19 @@ def make_directory():
         return jsonify({"message": f"Directory created successfully for subject: {subject}"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 @app.route('/generate_quiz', methods=['POST'])
 def generate_quiz():
-    """Endpoint to generate a quiz based on the subject."""
+    """Generate a quiz based on the subject."""
     data = request.get_json()
     subject = data.get("subject")
+    num_questions = data.get("num_questions", 10)  # Default to 10 if not provided
 
     if not subject:
         return jsonify({"error": "Subject is required"}), 400
 
     try:
         if ollama_llm is None:
-            return jsonify({"error": "Ollama model is not initialized. Please initialize the model first."}), 400
+            return jsonify({"error": "Ollama model is not initialized. Please initialize the model first."}), 500
 
         subject_folder = os.path.join(UPLOAD_FOLDER, subject)
         vector_store_file = os.path.join(subject_folder, "vector_store")
@@ -367,47 +367,58 @@ def generate_quiz():
         result = retriever.invoke(query)
         context = result[0].page_content if result else "No relevant content found."
 
-        question_prompt = f"""
-        You are an expert quiz generator. Create 10 to 20 multiple-choice questions based on the given content.
+        # Preprocess context to ensure better formatting
+        context = preprocess_text_for_quiz(context)
 
-        ### **Content**:
+        # Updated prompt to generate strictly formatted JSON
+        question_prompt = f"""
+        You are an expert quiz generator. Generate exactly {num_questions} multiple-choice questions based on the following content.
+
+        ### Content:
         "{context}"
 
-        ### **Instructions**:
-        - Each question must have **exactly 4 answer choices**.
-        - Clearly indicate the correct answer.
-        - Format the response as **valid JSON list of objects**, like this:
-        
-        ```json
+        ### Instructions:
+        - Each question must have exactly 4 answer choices.
+        - Clearly indicate the correct answer in the options.
+        - **Return only valid JSON (no extra text, no code blocks, no explanations).**
+        - Ensure no newlines or special characters like tabs are included.
+
+        Format:
         [
             {{
-                "question": "What is the first line of code to load the 'Diamonds' dataset?",
-                "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
-                "answer": "Option 1"
+                "question": "What is the capital of France?",
+                "options": ["Paris", "London", "Berlin", "Madrid"],
+                "answer": "Paris"
             }},
-            {{
-                "question": "Which package is used for data visualization?",
-                "options": ["ggplot2", "dplyr", "tidyr", "corrplot"],
-                "answer": "ggplot2"
-            }}
+            ...
         ]
-        ```
         """
 
-        response = ollama_llm.invoke(question_prompt)
+        # Get LLM response
+        response = ollama_llm.invoke(question_prompt).strip()
 
+        # Check if the response is empty or invalid
+        if not response:
+            return jsonify({"error": "LLM did not return a response"}), 500
+
+        # Clean up response (strip unwanted characters)
+        cleaned_response = response.replace("\n", " ").replace("\t", " ").replace("\r", " ").strip()
+
+        # Check for missing commas or common formatting issues
+        cleaned_response = fix_json_format(cleaned_response)
+
+        # Try parsing the cleaned response as JSON
         try:
-            raw_response = response.strip()
-            print(raw_response)
-            print(raw_response)  # Debugging output
+            quiz = json.loads(cleaned_response)
 
-            # Remove ```json and ``` if present
-            if raw_response.startswith("```json"):
-                raw_response = raw_response.replace("```json", "").replace("```", "").strip()
+            # Convert answer indices to actual answer texts if necessary
+            for item in quiz:
+                if isinstance(item["answer"], int) or (isinstance(item["answer"], str) and item["answer"].isdigit()):
+                    answer_index = int(item["answer"])  # Convert to integer
+                    if 0 <= answer_index < len(item["options"]):  # Ensure index is valid
+                        item["answer"] = item["options"][answer_index]  # Replace index with actual text
 
-            quiz = json.loads(raw_response)
-
-            # Validate response structure
+            # Validate the quiz structure
             valid_quiz = [
                 item for item in quiz if isinstance(item, dict) and
                 all(k in item for k in ["question", "options", "answer"]) and
@@ -415,13 +426,39 @@ def generate_quiz():
                 item["answer"] in item["options"]
             ]
 
+            if not valid_quiz:
+                return jsonify({"error": "Generated quiz format is incorrect", "details": cleaned_response}), 500
+
             return jsonify({"quiz": valid_quiz}), 200
 
-        except (json.JSONDecodeError, ValueError):
-            return jsonify({"error": "Invalid response format from LLM"}), 500
+        except json.JSONDecodeError as e:
+            return jsonify({"error": "Invalid JSON format from LLM", "details": f"Error: {e} - {cleaned_response}"}), 500
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+def preprocess_text_for_quiz(text):
+    """
+    Preprocess text to improve its suitability for quiz generation.
+    This function will clean the text and enhance it for better formatting.
+    """
+    # Remove unnecessary newlines or excessive whitespaces
+    text = re.sub(r'\s+', ' ', text.strip())
+
+    # Optionally, enhance the text with specific instructions for better content parsing.
+    text = f"Here are the key concepts: {text[:1000]}..."  # Truncate the text if it's too long
+
+    return text
+
+def fix_json_format(response):
+    """
+    Attempt to fix common issues in the response, such as missing commas or extraneous characters.
+    """
+    # Simple heuristic to fix missing commas or other issues
+    response = re.sub(r'(\{|\[)(\s*)([^\}\],\]]+)(\s*)(\}|\])', r'\1\3\5', response)  # Attempt to fix structure
+    
+    # Return the fixed response
+    return response
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
