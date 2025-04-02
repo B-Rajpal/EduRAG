@@ -5,93 +5,89 @@ import { FaPaperPlane } from "react-icons/fa";
 import Loader from "./Loader";
 
 const Chatbot = ({ subject, onQuerySubmit, onStart }) => {
-  const [input, setInput] = useState(""); // For user input
-  const [chatHistory, setChatHistory] = useState([]); // To store chat history
-  const [loadingScreen, setLoadingScreen] = useState(false); // State for loading overlay
+  const [input, setInput] = useState("");
+  const [chatHistory, setChatHistory] = useState([]);
+  const [loadingScreen, setLoadingScreen] = useState(false);
   const [start, setStart] = useState(true);
   const [error, setError] = useState(null);
-  const [uploadedfiles, setUploadedfiles] = useState([]); // List of uploaded files
+  const [uploadedfiles, setUploadedfiles] = useState([]);
   const chatEndRef = useRef(null);
   const inputRef = useRef(null);
 
   // Fetch the list of uploaded files and update state
-  const fetchFiles = () => {
+  const fetchFiles = async () => {
     if (subject) {
-      axios
-        .get(`http://localhost:5000/preview?subject=${subject}`)
-        .then((response) => {
-          const filteredFiles = (response.data.files || []).filter(
-            (file) => file !== "vector"
-          );
-          setUploadedfiles(filteredFiles);
-        })
-        .catch((err) => setError(`Error fetching files: ${err.message}`));
+      try {
+        const response = await axios.get(`http://localhost:5000/preview?subject=${subject}`);
+        const filteredFiles = (response.data.files || []).filter((file) => file !== "vector");
+        setUploadedfiles(filteredFiles);
+      } catch (err) {
+        setError(`Error fetching files: ${err.message}`);
+      }
     }
   };
 
-  // Re-fetch uploaded files when the subject or file list changes
+  // Re-fetch uploaded files when the subject changes
   useEffect(() => {
     fetchFiles();
   }, [subject]);
 
-  // Re-render chatbot when uploaded files change
+  // Ensure files are detected before processing
   useEffect(() => {
-    console.log("Files updated, re-rendering chatbot...");
+    if (uploadedfiles.length > 0) {
+      setError(null);
+    }
   }, [uploadedfiles]);
 
-  // Callback for file upload success
+  // Handle file upload success and refresh file list
+  const handleFileUploadSuccess = () => {
+    fetchFiles();
+  };
+
+  // Callback for processing files
   const handleStart = async () => {
-    if (!uploadedfiles.length) {
-      setError("No files available to process.");
-      return;
-    }
+    await fetchFiles(); // Ensure latest files are fetched
 
-    setLoadingScreen(true);
+    setTimeout(async () => {
+      if (!uploadedfiles.length) {
+        setError("No files available to process.");
+        return;
+      }
 
-    try {
-      // Prepare file paths dynamically based on the subject
-      const selectedFiles = uploadedfiles
-        .filter((file) => file.endsWith(".pdf"))
-        .map((file) => `E:\\final year project\\EduRAG\\backend\\uploads\\${subject}\\${file}`);
-      console.log("Processing files:", selectedFiles);
+      setLoadingScreen(true);
+      try {
+        // Prepare file paths
+        const selectedFiles = uploadedfiles
+          .filter((file) => file.endsWith(".pdf"))
+          .map((file) => `E:\\final year project\\EduRAG\\backend\\uploads\\${subject}\\${file}`);
+        console.log("Processing files:", selectedFiles);
 
-      // Call the chunk endpoint
-      const chunkResponse = await axios.post(
-        "http://localhost:5000/chunk",
-        {
-          filePaths: selectedFiles,
-          subject: subject,
-        },
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
+        // Call the chunk endpoint
+        const chunkResponse = await axios.post(
+          "http://localhost:5000/chunk",
+          { filePaths: selectedFiles, subject: subject },
+          { headers: { "Content-Type": "application/json" } }
+        );
+        console.log("Chunk response:", chunkResponse.data);
 
-      console.log("Chunk response:", chunkResponse.data);
+        // Initialize the model
+        const modelResponse = await axios.post(
+          "http://localhost:5000/initialize",
+          {},
+          { headers: { "Content-Type": "application/json" } }
+        );
+        console.log("Model initialization response:", modelResponse.data);
 
-      // Initialize the model
-      const modelResponse = await axios.post(
-        "http://localhost:5000/initialize",
-        {},
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      console.log("Model initialization response:", modelResponse.data);
-      onStart();
-      setStart(false);
-      setError(null);
-    } catch (error) {
-      console.error("Error:", error.response?.data || error.message);
-      setError("An error occurred during the process. Please try again.");
-    } finally {
-      setLoadingScreen(false);
-    }
+        onStart();
+        setStart(false);
+        setError(null);
+      } catch (error) {
+        console.error("Error:", error.response?.data || error.message);
+        setError("An error occurred during the process. Please try again.");
+      } finally {
+        setLoadingScreen(false);
+      }
+    }, 1000);
   };
 
   const handleSend = async () => {
@@ -113,12 +109,11 @@ const Chatbot = ({ subject, onQuerySubmit, onStart }) => {
         { role: "Bot", message: response.data.answer || "No response received.", isHtml: true },
       ]);
 
-      // Send query to ClassDetails for visualization
       if (onQuerySubmit) {
-        const queryPoint = response.data.query_point; // Assuming query_point is in the response
+        const queryPoint = response.data.query_point;
         const all_embeddings = response.data.existing_embeddings;
         const reference_embeddings = response.data.reference_embeddings;
-        onQuerySubmit(queryPoint, all_embeddings, reference_embeddings); // Send the query point for visualization
+        onQuerySubmit(queryPoint, all_embeddings, reference_embeddings);
       }
     } catch (err) {
       setError("Error processing your request.");
