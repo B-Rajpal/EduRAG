@@ -19,7 +19,7 @@ const Chatbot = ({ subject, onQuerySubmit, onStart }) => {
     if (subject) {
       try {
         const response = await axios.get(`http://localhost:5000/preview?subject=${subject}`);
-        const filteredFiles = (response.data.files || []).filter((file) => file !== "vector");
+        const filteredFiles = (response.data.files || []).filter(file => file !== "vector");
         setUploadedfiles(filteredFiles);
       } catch (err) {
         setError(`Error fetching files: ${err.message}`);
@@ -33,62 +33,70 @@ const Chatbot = ({ subject, onQuerySubmit, onStart }) => {
   }, [subject]);
 
   // Ensure files are detected before processing
-  useEffect(() => {
-    if (uploadedfiles.length > 0) {
-      setError(null);
-    }
-  }, [uploadedfiles]);
+  // useEffect(() => {
+  //   if (uploadedfiles.length > 0) {
+  //     setError(null);
+  //   }
+  // }, [uploadedfiles]);
 
-  // Handle file upload success and refresh file list
-  const handleFileUploadSuccess = () => {
-    fetchFiles();
-  };
-
+  
   // Callback for processing files
   const handleStart = async () => {
-    await fetchFiles(); // Ensure latest files are fetched
-
-    setTimeout(async () => {
-      if (!uploadedfiles.length) {
-        setError("No files available to process.");
-        return;
-      }
-
-      setLoadingScreen(true);
-      try {
-        // Prepare file paths
-        const selectedFiles = uploadedfiles
-          .filter((file) => file.endsWith(".pdf"))
-          .map((file) => `E:\\final year project\\EduRAG\\backend\\uploads\\${subject}\\${file}`);
-        console.log("Processing files:", selectedFiles);
-
-        // Call the chunk endpoint
-        const chunkResponse = await axios.post(
-          "http://localhost:5000/chunk",
-          { filePaths: selectedFiles, subject: subject },
-          { headers: { "Content-Type": "application/json" } }
-        );
-        console.log("Chunk response:", chunkResponse.data);
-
-        // Initialize the model
-        const modelResponse = await axios.post(
-          "http://localhost:5000/initialize",
-          {},
-          { headers: { "Content-Type": "application/json" } }
-        );
-        console.log("Model initialization response:", modelResponse.data);
-
-        onStart();
-        setStart(false);
-        setError(null);
-      } catch (error) {
-        console.error("Error:", error.response?.data || error.message);
-        setError("An error occurred during the process. Please try again.");
-      } finally {
-        setLoadingScreen(false);
-      }
-    }, 1000);
+    await fetchFiles(); // Fetch the latest files first
+  
+    // Use the latest files instead of uploadedfiles state
+    const latestFilesResponse = await axios.get(`http://localhost:5000/preview?subject=${subject}`);
+    const latestFiles = (latestFilesResponse.data.files || []).filter(file => file !== "vector");
+  
+    if (latestFiles.length === 0) {
+      setError("No files available to process.");
+      return;
+    }
+  
+    setUploadedfiles(latestFiles); // Ensure state gets updated
+    setLoadingScreen(true);
+  
+    try {
+      const selectedFiles = latestFiles
+        .filter(file => file.endsWith(".pdf"))
+        .map(file => `E:\\final year project\\EduRAG\\backend\\uploads\\${subject}\\${file}`);
+  
+      console.log("Processing files:", selectedFiles);
+  
+      // Chunk processing
+      const chunkResponse = await axios.post(
+        "http://localhost:5000/chunk",
+        { filePaths: selectedFiles, subject },
+        { headers: { "Content-Type": "application/json" } }
+      );
+  
+      console.log("Chunk response:", chunkResponse.data);
+  
+      // Initialize the model
+      const modelResponse = await axios.post(
+        "http://localhost:5000/initialize",
+        {},
+        { headers: { "Content-Type": "application/json" } }
+      );
+  
+      console.log("Model initialization response:", modelResponse.data);
+      onStart();
+      setStart(false);
+      setError(null);
+    } catch (error) {
+      console.error("Error:", error.response?.data || error.message);
+      setError("An error occurred during the process. Please try again.");
+    } finally {
+      setLoadingScreen(false);
+    }
   };
+          // Initialize the model
+          useEffect(() => {
+            if (uploadedfiles.length > 0) {
+              setError(null); // Clear error if files exist
+            }
+          }, [uploadedfiles]);
+          
 
   const handleSend = async () => {
     if (!input.trim()) return;
