@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect,useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import "../styles/classdetails.css";
 import Chatbot from "../components/Chatbot";
@@ -47,7 +47,12 @@ const ClassDetails = () => {
         .finally(() => setIsLoading(false));
     }
   };
-
+ 
+const handleFileUploadSuccess = () => {
+  if (selectedClass) {
+    fetchFiles(selectedClass.class.title);
+  }
+};
   const formatText = (text, maxLength = 30) => {
     return text.length > maxLength
       ? text.match(new RegExp(`.{1,${maxLength}}`, "g")).join("<br>")
@@ -144,13 +149,13 @@ const ClassDetails = () => {
         <p className="class-teacher">Taught by: {selectedClass.class.teacher}</p>
         <p className="class-description">{selectedClass.class.description}</p>
 
-        <FileUpload subject={selectedClass.class.title} onFileUpload={fetchFiles} />
+        <FileUpload
+  subject={selectedClass.class.title}
+  onFileUpload={handleFileUploadSuccess}
+/>
+        {/* <FileUpload subject={selectedClass.class.title} onFileUpload={fetchFiles} /> */}
 
-        <div className="file-preview">
-          <button className="toggle-button" onClick={() => navigate(`/quiz?subject=${selectedClass.class.title}`)}>
-            Quiz
-          </button>
-          </div>
+       
           <button className="toggle-button" onClick={() => setShowPreview(!showPreview)}>
   Preview files
 </button>
