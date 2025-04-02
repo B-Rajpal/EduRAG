@@ -15,7 +15,7 @@ from langchain.llms.base import LLM
 import markdown
 from sklearn.manifold import TSNE
 import numpy as np
-
+import re
 # Flask app setup
 app = Flask(__name__)
 CORS(app)
@@ -59,7 +59,7 @@ def initialize_model():
     global ollama_llm
 
     if ollama_llm is None:
-        ollama_llm = Ollama(model="qwen2.5:0.5b")
+        ollama_llm = Ollama(model="llama3.2")
         return jsonify({"message": "Model initialized successfully"}), 200
     else:
         return jsonify({"message": "Model already initialized"}), 200
@@ -338,83 +338,127 @@ def make_directory():
         return jsonify({"error": str(e)}), 500
 @app.route('/generate_quiz', methods=['POST'])
 def generate_quiz():
-    """Endpoint to generate a quiz based on the subject."""
+    """Generate a quiz based on the subject."""
     data = request.get_json()
     subject = data.get("subject")
-    num_questions = data.get("num_questions", 5)  # Default to 5 questions
+    num_questions = data.get("num_questions", 10)  # Default to 10 if not provided
 
     if not subject:
         return jsonify({"error": "Subject is required"}), 400
 
     try:
-        # Check if the model is initialized
         if ollama_llm is None:
-            return jsonify({"error": "Ollama model is not initialized. Please initialize the model first."}), 400
+            return jsonify({"error": "Ollama model is not initialized. Please initialize the model first."}), 500
 
-        # Load the vector store for the given subject
         subject_folder = os.path.join(UPLOAD_FOLDER, subject)
         vector_store_file = os.path.join(subject_folder, "vector_store")
-        
+
         if not os.path.exists(vector_store_file):
             return jsonify({"error": f"No data available for the subject '{subject}'."}), 400
-        
-        embedding_model = HuggingFaceEmbeddings(model_name='all-MiniLM-L6-v2')
 
-        # Load vector store safely
+        embedding_model = HuggingFaceEmbeddings(model_name='all-MiniLM-L6-v2')
         vector_store = FAISS.load_local(vector_store_file, embedding_model, allow_dangerous_deserialization=True)
 
-        # 🔹 Check FAISS Data Availability
-        print("Total vectors in FAISS:", vector_store.index.ntotal)  
         if vector_store.index.ntotal == 0:
             return jsonify({"error": "No vectors found in FAISS. Please upload content first."}), 400
 
-        quiz = []
-        for _ in range(num_questions):
-            # Retrieve relevant chunk of text
-            retriever = vector_store.as_retriever(search_kwargs={"k": 3})  
-            query = f"Key concepts of {subject}"
-            result = retriever.get_relevant_documents(query)
+        retriever = vector_store.as_retriever(search_kwargs={"k": 3})
+        query = f"Key concepts of {subject}"
+        result = retriever.invoke(query)
+        context = result[0].page_content if result else "No relevant content found."
 
-            context = result[0].page_content if result else "No relevant content found."
+        # Preprocess context to ensure better formatting
+        context = preprocess_text_for_quiz(context)
 
-            # 🔹 Force JSON Output from LLM
-            question_prompt = f"""
-            You are an AI quiz generator. Based on the following content, generate a multiple-choice question.
+        # Updated prompt to generate strictly formatted JSON
+        question_prompt = f"""
+        You are an expert quiz generator. Generate exactly {num_questions} multiple-choice questions based on the following content.
 
-            Content: "{context}"
+        ### Content:
+        "{context}"
 
-            Respond strictly in this JSON format:
+        ### Instructions:
+        - Each question must have exactly 4 answer choices.
+        - Clearly indicate the correct answer in the options.
+        - **Return only valid JSON (no extra text, no code blocks, no explanations).**
+        - Ensure no newlines or special characters like tabs are included.
+
+        Format:
+        [
             {{
-                "question": "Your question here",
-                "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
-                "answer": "Correct answer from the options"
-            }}
-            Return only JSON, no extra text.
-            """
+                "question": "What is the capital of France?",
+                "options": ["Paris", "London", "Berlin", "Madrid"],
+                "answer": "Paris"
+            }},
+            ...
+        ]
+        """
 
-            response = ollama_llm._call(question_prompt)
+        # Get LLM response
+        response = ollama_llm.invoke(question_prompt).strip()
 
-            # 🔹 Debug: Print Raw Response
-            print("Raw LLM Response:", response)
+        # Check if the response is empty or invalid
+        if not response:
+            return jsonify({"error": "LLM did not return a response"}), 500
 
-            # 🔹 JSON Parsing with Error Handling
-            try:
-                quiz_item = json.loads(response)
-                if "question" in quiz_item and "options" in quiz_item and "answer" in quiz_item:
-                    quiz.append(quiz_item)
-                else:
-                    print("Invalid Quiz Format:", response)
-            except json.JSONDecodeError:
-                print("Error decoding LLM response:", response)
-                continue
+        # Clean up response (strip unwanted characters)
+        cleaned_response = response.replace("\n", " ").replace("\t", " ").replace("\r", " ").strip()
 
-        # 🔹 Log the generated quiz
-        print("Generated Quiz:", quiz)
+        # Check for missing commas or common formatting issues
+        cleaned_response = fix_json_format(cleaned_response)
 
-        return jsonify({"quiz": quiz}), 200
+        # Try parsing the cleaned response as JSON
+        try:
+            quiz = json.loads(cleaned_response)
+
+            # Convert answer indices to actual answer texts if necessary
+            for item in quiz:
+                if isinstance(item["answer"], int) or (isinstance(item["answer"], str) and item["answer"].isdigit()):
+                    answer_index = int(item["answer"])  # Convert to integer
+                    if 0 <= answer_index < len(item["options"]):  # Ensure index is valid
+                        item["answer"] = item["options"][answer_index]  # Replace index with actual text
+
+            # Validate the quiz structure
+            valid_quiz = [
+                item for item in quiz if isinstance(item, dict) and
+                all(k in item for k in ["question", "options", "answer"]) and
+                isinstance(item["options"], list) and len(item["options"]) == 4 and
+                item["answer"] in item["options"]
+            ]
+
+            if not valid_quiz:
+                return jsonify({"error": "Generated quiz format is incorrect", "details": cleaned_response}), 500
+
+            return jsonify({"quiz": valid_quiz}), 200
+
+        except json.JSONDecodeError as e:
+            return jsonify({"error": "Invalid JSON format from LLM", "details": f"Error: {e} - {cleaned_response}"}), 500
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+def preprocess_text_for_quiz(text):
+    """
+    Preprocess text to improve its suitability for quiz generation.
+    This function will clean the text and enhance it for better formatting.
+    """
+    # Remove unnecessary newlines or excessive whitespaces
+    text = re.sub(r'\s+', ' ', text.strip())
+
+    # Optionally, enhance the text with specific instructions for better content parsing.
+    text = f"Here are the key concepts: {text[:1000]}..."  # Truncate the text if it's too long
+
+    return text
+
+def fix_json_format(response):
+    """
+    Attempt to fix common issues in the response, such as missing commas or extraneous characters.
+    """
+    # Simple heuristic to fix missing commas or other issues
+    response = re.sub(r'(\{|\[)(\s*)([^\}\],\]]+)(\s*)(\}|\])', r'\1\3\5', response)  # Attempt to fix structure
+    
+    # Return the fixed response
+    return response
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

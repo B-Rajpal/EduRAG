@@ -20,6 +20,7 @@ const ClassDetails = () => {
   const [showChunkedData, setShowChunkedData] = useState(false);
   const [showReferenceData, setShowReferenceData] = useState(false);
   const [showTsneVisualization, setShowTsneVisualization] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   useEffect(() => {
     const fetchClassDetails = async () => {
@@ -146,32 +147,40 @@ const ClassDetails = () => {
         <FileUpload subject={selectedClass.class.title} onFileUpload={fetchFiles} />
 
         <div className="file-preview">
-          <button onClick={() => navigate(`/quiz?subject=${selectedClass.class.title}`)}>
+          <button className="toggle-button" onClick={() => navigate(`/quiz?subject=${selectedClass.class.title}`)}>
             Quiz
           </button>
+          </div>
+          <button className="toggle-button" onClick={() => setShowPreview(!showPreview)}>
+  Preview files
+</button>
+<div className="list">
 
-          <h2>Preview Files</h2>
-          {error && <p className="error">{error}</p>}
-          {isLoading ? (
-            <p>Loading files...</p>
-          ) : files.length > 0 ? (
-            <ul>
-              {files.map((file, index) => (
-                <li key={index}>
-                  {file}
-                  <button
-                    onClick={() => handleDeleteFile(file)}
-                    className="delete-button"
-                  >
-                    Delete
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>No files available for this subject.</p>
-          )}
-        </div>
+{showPreview && (
+  <div className="file-preview">
+    {error && <p className="error">{error}</p>}
+    {isLoading ? (
+      <p>Loading files...</p>
+    ) : files.length > 0 ? (
+      <ul>
+        {files.map((file, index) => (
+          <li key={index}>
+            {file}
+            <button
+              onClick={() => handleDeleteFile(file)}
+              className="delete-button"
+            >
+              Delete
+            </button>
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <p>No files available for this subject.</p>
+    )}
+  </div>
+)}
+
         <button className="toggle-button" onClick={() => setShowChunkedData(!showChunkedData)}>Chunked Data</button>
         {showChunkedData &&
           <div className="chunked-data">
@@ -253,8 +262,9 @@ const ClassDetails = () => {
           </div>)}
 
         <Chatbot subject={selectedClass.class.title} onQuerySubmit={handleQuerySubmit} onStart={fetchTsneData} />
-      </div>
-    </div>
+      
+    </div></div>
+  </div>
   );
 };
 

@@ -4,36 +4,42 @@ import axios from "axios";
 import { FaPaperPlane } from "react-icons/fa";
 import Loader from "./Loader";
 
-const Chatbot = ({ subject, onQuerySubmit, onStart }) => { // Add onQuerySubmit as a prop
+const Chatbot = ({ subject, onQuerySubmit, onStart }) => {
   const [input, setInput] = useState(""); // For user input
   const [chatHistory, setChatHistory] = useState([]); // To store chat history
   const [loadingScreen, setLoadingScreen] = useState(false); // State for loading overlay
   const [start, setStart] = useState(true);
-  const [error, setError] = useState(false);
-  const [uploadedfiles, setUploadedfiles] = useState([]);
+  const [error, setError] = useState(null);
+  const [uploadedfiles, setUploadedfiles] = useState([]); // List of uploaded files
   const chatEndRef = useRef(null);
   const inputRef = useRef(null);
 
-  // Fetch the list of uploaded files
+  // Fetch the list of uploaded files and update state
   const fetchFiles = () => {
     if (subject) {
       axios
         .get(`http://localhost:5000/preview?subject=${subject}`)
         .then((response) => {
-          const filteredFiles = (response.data.files || []).filter((file) => file !== "vector");
+          const filteredFiles = (response.data.files || []).filter(
+            (file) => file !== "vector"
+          );
           setUploadedfiles(filteredFiles);
         })
         .catch((err) => setError(`Error fetching files: ${err.message}`));
     }
   };
 
-  // Fetch files when the subject changes
+  // Re-fetch uploaded files when the subject or file list changes
   useEffect(() => {
     fetchFiles();
   }, [subject]);
 
+  // Re-render chatbot when uploaded files change
+  useEffect(() => {
+    console.log("Files updated, re-rendering chatbot...");
+  }, [uploadedfiles]);
+
   // Callback for file upload success
-  
   const handleStart = async () => {
     if (!uploadedfiles.length) {
       setError("No files available to process.");
@@ -46,7 +52,7 @@ const Chatbot = ({ subject, onQuerySubmit, onStart }) => { // Add onQuerySubmit 
       // Prepare file paths dynamically based on the subject
       const selectedFiles = uploadedfiles
         .filter((file) => file.endsWith(".pdf"))
-        .map((file) => `E:\\Finalyear_project\\EduRAG\\backend\\uploads\\${subject}\\${file}`);
+        .map((file) => `E:\\final year project\\EduRAG\\backend\\uploads\\${subject}\\${file}`);
       console.log("Processing files:", selectedFiles);
 
       // Call the chunk endpoint
@@ -87,6 +93,7 @@ const Chatbot = ({ subject, onQuerySubmit, onStart }) => { // Add onQuerySubmit 
       setLoadingScreen(false);
     }
   };
+
   const handleSend = async () => {
     if (!input.trim()) return;
 
@@ -111,7 +118,7 @@ const Chatbot = ({ subject, onQuerySubmit, onStart }) => { // Add onQuerySubmit 
         const queryPoint = response.data.query_point; // Assuming query_point is in the response
         const all_embeddings = response.data.existing_embeddings;
         const reference_embeddings = response.data.reference_embeddings;
-        onQuerySubmit(queryPoint,all_embeddings,reference_embeddings); // Send the query point for visualization
+        onQuerySubmit(queryPoint, all_embeddings, reference_embeddings); // Send the query point for visualization
       }
     } catch (err) {
       setError("Error processing your request.");
@@ -131,9 +138,12 @@ const Chatbot = ({ subject, onQuerySubmit, onStart }) => { // Add onQuerySubmit 
 
   return (
     <div className="chatbox">
-      {loadingScreen && <div className="loading-overlay"><Loader /></div>}
+      {loadingScreen && (
+        <div className="loading-overlay">
+          <Loader />
+        </div>
+      )}
 
-      
       <div className="chathistory">
         {chatHistory.map((chat, index) => (
           <div
@@ -148,8 +158,8 @@ const Chatbot = ({ subject, onQuerySubmit, onStart }) => { // Add onQuerySubmit 
               wordWrap: "break-word",
             }}
             className="div1"
-                      >
-                                    <strong>{chat.role}:</strong>
+          >
+            <strong>{chat.role}:</strong>
             {chat.isHtml ? (
               <div dangerouslySetInnerHTML={{ __html: chat.message }}></div>
             ) : (
@@ -162,7 +172,9 @@ const Chatbot = ({ subject, onQuerySubmit, onStart }) => { // Add onQuerySubmit 
       </div>
 
       {start && !error ? (
-        <button onClick={handleStart} disabled={loadingScreen}>Start</button>
+        <button onClick={handleStart} disabled={loadingScreen}>
+          Start
+        </button>
       ) : (
         <div className="inputbox">
           <textarea
@@ -175,6 +187,12 @@ const Chatbot = ({ subject, onQuerySubmit, onStart }) => { // Add onQuerySubmit 
             disabled={loadingScreen}
           ></textarea>
           <FaPaperPlane onClick={handleSend} disabled={loadingScreen || error} />
+          <button
+            className="toggle-button-quiz"
+            onClick={() => window.location.href = `/quiz?subject=${subject}`}
+          >
+            Quiz
+          </button>
         </div>
       )}
 

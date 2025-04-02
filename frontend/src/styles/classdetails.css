@@ -1,9 +1,10 @@
 /* Base container styling */
 .class-details-container {
+  background: linear-gradient(90deg, rgba(2, 0, 36, 1) 0%, rgba(195, 195, 204, 1) 0%, rgba(230, 232, 230, 0.683) 35%);
   font-family: "Roboto", sans-serif;
   display: flex;
   flex-direction: column;
-  margin: 73px 0 0 0;
+  /* margin: 73px 0 0 0; */
   width: 70%;
   height: 100%;
   border: 1px solid #e0e0e0;
@@ -87,7 +88,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: #f9f9f9;
+  background: linear-gradient(90deg, rgba(2, 0, 36, 1) 0%, rgba(195, 195, 204, 1) 0%, rgba(230, 232, 230, 0.683) 35%);
   padding: 12px 20px;
   margin-bottom: 10px;
   border-radius: 8px;
@@ -122,22 +123,32 @@
 
 /* Buttons for additional data display */
 .toggle-button {
-  color: black;
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 15px;
   width: 100%;
-  background: none;
-  border: 1px solid #ccc;
-  padding: 10px;
-  font-size: 16px;
+  max-width: 300px;
+  font-size: 18px;
+  font-weight: bold;
   cursor: pointer;
-  margin-top: 10px;
-  transition: background-color 0.3s ease;
+  margin: 10px auto;
+  transition: all 0.3s ease-in-out;
 }
 
 .toggle-button:hover {
-  background-color: #f0f0f0;
+  background-color: #67a4da;
+  transform: scale(1.02);
 }
-
+.toggle-card.active {
+  background-color: #4caf50;
+  color: white;
+  border-color: #4caf50;
+}
 /* Scrollable content sections */
 .chunked-data, .reference-data, .tsne-preview {
   max-height: 60vh;
@@ -145,14 +156,14 @@
   padding: 10px;
   border: 1px solid #ddd;
   margin-top: 5px;
-  background-color: #f9f9f9;
+  background: linear-gradient(90deg, rgba(2, 0, 36, 1) 0%, rgba(195, 195, 204, 1) 0%, rgba(230, 232, 230, 0.683) 35%);
   border-radius: 5px;
 }
 /* Chunked Data Section */
 .chunked-data, .reference-data {
   margin-top: 30px;
   padding: 20px;
-  background-color: #f5f5f5;
+  background: linear-gradient(90deg, rgba(2, 0, 36, 1) 0%, rgba(195, 195, 204, 1) 0%, rgba(230, 232, 230, 0.683) 35%);
   border-radius: 10px;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   text-align: left;

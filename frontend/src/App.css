@@ -1,7 +1,8 @@
 
 body {
   font-family: 'Arial', sans-serif;
-  background-color: #f4f4f4;
+  background: rgb(170,165,165);
+background: linear-gradient(331deg, rgba(170,165,165,1) 14%, rgba(82,121,147,1) 44%, rgba(184,182,174,0.5013655120251226) 60%);
   margin: 0;
   padding: 0;
 }
@@ -59,7 +60,7 @@ li {
 }
 
 p {
-  color: #666;
+  color: #4c3681;
 }
 
 form {
